@@ -10,6 +10,6 @@ rand = "0.9.1"
 regex = "1.11.1"
 anyhow = "1.0.98"
 
-[patch."https://github.com/gentoo-based/joryu"]
-serenity = { git = "https://github.com/gentoo-based/serenity-android" }
-poise = { git = "https://github.com/gentoo-based/poise }
+[patch.crates-io]
+serenity = { path = "./serenity-android" }
+poise = { git = "./poise }

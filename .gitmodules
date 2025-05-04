@@ -1,6 +1,0 @@
-[submodule "serenity-android"]
-	path = serenity-android
-	url = https://github.com/gentoo-based/serenity-android
-[submodule "poise"]
-	path = poise
-	url = https://github.com/gentoo-based/poise
