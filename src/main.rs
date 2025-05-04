@@ -539,5 +539,7 @@ async fn main() {
         .await;
 
     println!("Starting client...");
-    let _ = client.unwrap().start_shards(16).await;
+    client.unwrap().start_shards(32).await.unwrap();
+    println!("Started client");
+    return;
 }
