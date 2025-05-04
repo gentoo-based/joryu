@@ -415,7 +415,7 @@ struct Handler;
 impl serenity::EventHandler for Handler {
     async fn ready(&self, context: poise::serenity_prelude::Context, _: Ready) {
         println!("Started shard: {}", context.shard_id);
-        if context.shard_id == "0" {
+        if context.shard_id == serenity::ShardId(0) {
             use serenity::gateway::ActivityData;
             use serenity::model::user::OnlineStatus;
             static MESSAGES: &[&str] = &[
