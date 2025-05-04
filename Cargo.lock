@@ -221,8 +221,7 @@ dependencies = [
 [[package]]
 name = "command_attr"
 version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6fcc89439e1bb4e19050a9586a767781a3060000d2f3296fd2a40597ad9421c5"
+source = "git+https://github.com/gentoo-based/serenity-android#39a860aaaea3926d270fc124837ac3b74eac917c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1029,7 +1028,7 @@ dependencies = [
  "poise",
  "rand 0.9.1",
  "regex",
- "serenity",
+ "serenity 0.12.4 (git+https://github.com/gentoo-based/serenity-android)",
  "shuttle-runtime",
  "shuttle-serenity",
  "tokio",
@@ -1256,7 +1255,7 @@ dependencies = [
  "parking_lot",
  "poise_macros",
  "regex",
- "serenity",
+ "serenity 0.12.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio",
  "tracing",
 ]
@@ -1872,12 +1871,45 @@ dependencies = [
  "bitflags 2.9.0",
  "bytes",
  "chrono",
+ "dashmap",
+ "flate2",
+ "futures",
+ "fxhash",
+ "mime_guess",
+ "parking_lot",
+ "percent-encoding",
+ "reqwest 0.11.27",
+ "secrecy",
+ "serde",
+ "serde_cow",
+ "serde_json",
+ "time",
+ "tokio",
+ "tokio-tungstenite 0.21.0",
+ "tracing",
+ "typemap_rev",
+ "typesize",
+ "url",
+]
+
+[[package]]
+name = "serenity"
+version = "0.12.4"
+source = "git+https://github.com/gentoo-based/serenity-android#39a860aaaea3926d270fc124837ac3b74eac917c"
+dependencies = [
+ "arrayvec",
+ "async-trait",
+ "base64 0.22.1",
+ "bitflags 2.9.0",
+ "bytes",
+ "chrono",
  "command_attr",
  "dashmap",
  "flate2",
  "futures",
  "fxhash",
  "levenshtein",
+ "litemap",
  "mime_guess",
  "parking_lot",
  "percent-encoding",
@@ -1895,6 +1927,7 @@ dependencies = [
  "typesize",
  "url",
  "uwl",
+ "zerofrom",
 ]
 
 [[package]]
@@ -2003,7 +2036,7 @@ version = "0.53.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cbdba6788f639e579c4533a55c8f14b328ae907c8d53e048d41a92510d391262"
 dependencies = [
- "serenity",
+ "serenity 0.12.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "shuttle-runtime",
 ]
 
