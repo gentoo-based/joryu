@@ -452,6 +452,7 @@ impl serenity::EventHandler for Handler {
         let message = rand::seq::IndexedRandom::choose(MESSAGES, &mut rand::rng()).unwrap();
         let activity = ActivityData::custom(format!("{}", message));
         let status = OnlineStatus::Online;
+        println!("Started client");
 
         context.set_presence(Some(activity.clone()), status);
         loop {
@@ -533,13 +534,13 @@ async fn main() {
         })
         .build();
 
-    let client = ClientBuilder::new(discord_token, GatewayIntents::all())
+    let mut client = ClientBuilder::new(discord_token, GatewayIntents::all())
         .event_handler(Handler)
         .framework(framework)
-        .await;
+        .await
+        .expect("Error making client.");
 
     println!("Starting client...");
-    client.unwrap().start_shards(32).await.unwrap();
-    println!("Started client");
+    client.start_shards(32).await.unwrap();
     return;
 }
