@@ -2441,3 +2441,8 @@ dependencies = [
  "quote",
  "syn 2.0.101",
 ]
+
+[[patch.unused]]
+name = "serenity"
+version = "0.12.4"
+source = "git+https://github.com/gentoo-based/serenity-android#06366bf1ba9dd315f3f989cc822d6b325261b219"
