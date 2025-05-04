@@ -4,15 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-poise = "0.6.1"
+poise = { version = "0.6.1", git = "https://github.com/gentoo-based/poise" }
 tokio = { version = "1.44.2", features = ["rt-multi-thread"] }
 rand = "0.9.1"
 regex = "1.11.1"
 anyhow = "1.0.98"
-serenity = "0.12.4"
-shuttle-serenity = "0.53.0"
+shuttle-serenity = { git = "ssh://github.com/gentoo-based/shuttle-serenity.git", version = "0.53.0" }
 shuttle-runtime = "0.53.0"
-
-[patch."https://github.com/gentoo-based/serenity-android"]
-
-[patch."https://github.com/gentoo-based/poise"]

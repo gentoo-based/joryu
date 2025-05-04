@@ -1,7 +1,6 @@
 use rand::Rng;
 // use meval;
 use poise::serenity_prelude::{self as serenity, CacheHttp, ClientBuilder, CreateMessage, GatewayIntents, Mentionable, Ready};
-use ::serenity::client;
 use std::time::{Duration, Instant};
 use regex::Regex;
 use anyhow::Context as _;
@@ -490,7 +489,7 @@ impl serenity::EventHandler for Handler {
 
 
 #[shuttle_runtime::main]
-async fn main(#[shuttle_runtime::Secrets] secret_store:: SecretStore) -> ShuttleSerenity {
+async fn main(#[shuttle_runtime::Secrets] secret_store: SecretStore) -> ShuttleSerenity {
     // Get the discord token set in `Secrets.toml`
     let discord_token = secret_store
     .get("DISCORD_TOKEN")
@@ -544,9 +543,10 @@ async fn main(#[shuttle_runtime::Secrets] secret_store:: SecretStore) -> Shuttle
     let mut client = ClientBuilder::new(discord_token, GatewayIntents::all())
         .event_handler(Handler)
         .framework(framework)
-        .await;
+        .await
+        .expect("The client has unexpectedly crashed.");
 
     println!("Starting client...");
-    client.start_shards(32).await.unwrap();
-    Ok(client.into());
+    let _ = client.start_shards(32).await;
+    Ok(client.into())
 }
