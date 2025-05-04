@@ -2445,3 +2445,4 @@ dependencies = [
 [[patch.unused]]
 name = "serenity"
 version = "0.12.4"
+source = "git+https://github.com/gentoo-based/serenity-android#d209f5867eaa03a8d61c59685d74e2fc078a7274"
