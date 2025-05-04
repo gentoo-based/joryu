@@ -1,0 +1,3 @@
+[submodule "serenity-android"]
+	path = serenity-android
+	url = https://github.com/gentoo-based/serenity-android

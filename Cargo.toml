@@ -1,0 +1,12 @@
+[package]
+name = "joryu"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serenity = "0.12.4"
+poise = "0.6.1"
+tokio = { version = "1.44.2", features = ["rt-multi-thread"] }
+rand = "0.9.1"
+regex = "1.11.1"
+anyhow = "1.0.98"
