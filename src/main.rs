@@ -1,12 +1,16 @@
 use rand::Rng;
 // use meval;
 use poise::serenity_prelude::{self as serenity, CacheHttp, ClientBuilder, CreateMessage, GatewayIntents, Mentionable, Ready};
+use ::serenity::client;
 use std::time::{Duration, Instant};
 use regex::Regex;
+use anyhow::Context as _;
+use shuttle_runtime::SecretStore;
+use shuttle_serenity::ShuttleSerenity;
+
 struct Data {
     pub start_time: Instant,
-}
-
+} // User data, which is stored and accessible in all command invocations
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
@@ -485,10 +489,12 @@ impl serenity::EventHandler for Handler {
 } 
 
 
-#[tokio::main]
-async fn main() {
+#[shuttle_runtime::main]
+async fn main(#[shuttle_runtime::Secrets] secret_store:: SecretStore) -> ShuttleSerenity {
     // Get the discord token set in `Secrets.toml`
-    let discord_token = std::env::var("DISCORD_TOKEN").expect("Discord token not given.");
+    let discord_token = secret_store
+    .get("DISCORD_TOKEN")
+    .context("'DISCORD_TOKEN' was not found")?;
 
     let framework: poise::Framework<_, _> = poise::Framework::builder()
         .options(poise::FrameworkOptions {
@@ -538,10 +544,9 @@ async fn main() {
     let mut client = ClientBuilder::new(discord_token, GatewayIntents::all())
         .event_handler(Handler)
         .framework(framework)
-        .await
-        .expect("Error making client.");
+        .await;
 
     println!("Starting client...");
     client.start_shards(32).await.unwrap();
-    return;
+    Ok(client.into());
 }
