@@ -452,7 +452,7 @@ impl serenity::EventHandler for Handler {
         let message = rand::seq::IndexedRandom::choose(MESSAGES, &mut rand::rng()).unwrap();
         let activity = ActivityData::custom(format!("{}", message));
         let status = OnlineStatus::Online;
-        println!("Started client");
+        println!("Started shard: {}", context.shard_id);
 
         context.set_presence(Some(activity.clone()), status);
         loop {
