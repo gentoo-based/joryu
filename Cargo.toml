@@ -11,6 +11,8 @@ regex = "1.11.1"
 anyhow = "1.0.98"
 serenity = "0.12.4"
 
-[patch.crates-io]
-serenity = { path = "../serenity-android" }
-poise = { path = "../poise" }
+[patch."https://github.com/gentoo-based/serenity-android"]
+serenity = { git = "https://github.com/gentoo-based/serenity-android" }
+
+[patch."https://github.com/gentoo-based/poise"]
+poise = { path = "https://github.com/gentoo-based/poise" }
