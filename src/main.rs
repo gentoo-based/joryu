@@ -414,47 +414,47 @@ struct Handler;
 #[serenity::async_trait]
 impl serenity::EventHandler for Handler {
     async fn ready(&self, context: poise::serenity_prelude::Context, _: Ready) {
+        use serenity::gateway::ActivityData;
+        use serenity::model::user::OnlineStatus;
+        static MESSAGES: &[&str] = &[
+            "aaaaaaaaaAAAAAAAAAAAAAAAA",
+            "Joryu, The Man Who Erased His Name",
+            "John Yakuza, the one and only...",
+            "I am The Dragon of Dojima.",
+            "Blockuza 3",
+            "ICHIBANN!!",
+            "AKIYAMA",
+            "Life is like a trampoline. The lower you fall, the higher you go.",
+            "I'm nothing like you. You think of the yakuza as a way to die. To me... being yakuza... It's a way to live.",
+            "If you’re so desperate to write yourself a title, write it in your own blood not other’s.",
+            "You walk alone in the dark long enough, It starts to feel like the light'll never come. You stop wanting to even take the next step. But there's not a person in this world who knows whats waiting down that road. All we can do is choose. Stand still and cry... Or make the choice to take the next step.",
+            "You're mine, punk.",
+            "Some are born with talent, and some aren't. That's true. But that said... Those with talent never make it through talent alone. You have to overcome. Find boundaries, and break them. The only way to grow is by overcoming challenges.",
+            "Today's been a very bad day... and its put me in a real shitty mood. Just your bad luck to run into me",
+            "Jo Amon?",
+            "You lay one god damn finger on Makoto Makimura... And I'll bury the Tojo Clan. I'll crush it down to the last man. This, I swear to you!",
+            "I'll be the one who will kill you, not this disease.",
+            "I'll be damned. The Punk Kid's finally turned... turned into a true Yakuza.",
+            "Yo... Kiryu-Chan!",
+            "Guess I needed them more than they needed me...",
+            "KUZEEE!!!!!!",
+            "Haruka?",
+            "Thing is, I have cancer...",
+            "Are you sure?",
+            "I'd tiger drop",
+            "Hello.",
+            "John Yakuza hates anyone who speaks loudly of him.",
+            "That's rad",
+            "Shinitai yatsu dake-- Kakatte koi!",
+            "KIRYUUUUU!!!",
+        ];
+        let message = rand::seq::IndexedRandom::choose(MESSAGES, &mut rand::rng()).unwrap();
+        let activity = ActivityData::custom(format!("{}", message));
+        let status = OnlineStatus::Online;
+
         println!("Started shard: {}", context.shard_id);
+        context.set_presence(Some(activity.clone()), status);
         if context.shard_id == serenity::ShardId(0) {
-            use serenity::gateway::ActivityData;
-            use serenity::model::user::OnlineStatus;
-            static MESSAGES: &[&str] = &[
-                "aaaaaaaaaAAAAAAAAAAAAAAAA",
-                "Joryu, The Man Who Erased His Name",
-                "John Yakuza, the one and only...",
-                "I am The Dragon of Dojima.",
-                "Blockuza 3",
-                "ICHIBANN!!",
-                "AKIYAMA",
-                "Life is like a trampoline. The lower you fall, the higher you go.",
-                "I'm nothing like you. You think of the yakuza as a way to die. To me... being yakuza... It's a way to live.",
-                "If you’re so desperate to write yourself a title, write it in your own blood not other’s.",
-                "You walk alone in the dark long enough, It starts to feel like the light'll never come. You stop wanting to even take the next step. But there's not a person in this world who knows whats waiting down that road. All we can do is choose. Stand still and cry... Or make the choice to take the next step.",
-                "You're mine, punk.",
-                "Some are born with talent, and some aren't. That's true. But that said... Those with talent never make it through talent alone. You have to overcome. Find boundaries, and break them. The only way to grow is by overcoming challenges.",
-                "Today's been a very bad day... and its put me in a real shitty mood. Just your bad luck to run into me",
-                "Jo Amon?",
-                "You lay one god damn finger on Makoto Makimura... And I'll bury the Tojo Clan. I'll crush it down to the last man. This, I swear to you!",
-                "I'll be the one who will kill you, not this disease.",
-                "I'll be damned. The Punk Kid's finally turned... turned into a true Yakuza.",
-                "Yo... Kiryu-Chan!",
-                "Guess I needed them more than they needed me...",
-                "KUZEEE!!!!!!",
-                "Haruka?",
-                "Thing is, I have cancer...",
-                "Are you sure?",
-                "I'd tiger drop",
-                "Hello.",
-                "John Yakuza hates anyone who speaks loudly of him.",
-                "That's rad",
-                "Shinitai yatsu dake-- Kakatte koi!",
-                "KIRYUUUUU!!!",
-            ];
-            let message = rand::seq::IndexedRandom::choose(MESSAGES, &mut rand::rng()).unwrap();
-            let activity = ActivityData::custom(format!("{}", message));
-            let status = OnlineStatus::Online;
-    
-            context.set_presence(Some(activity.clone()), status);
             loop {
                 tokio::time::sleep(std::time::Duration::from_millis(50000)).await;
                 context.set_presence(Some(activity.clone()), status);
