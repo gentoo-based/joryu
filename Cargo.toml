@@ -11,4 +11,4 @@ regex = "1.11.1"
 anyhow = "1.0.98"
 
 [patch."https://github.com/gentoo-based/joryu"]
-serenity = { path = "./serenity-android" }
+serenity = { git = "https://github.com/gentoo-based/joryu/serenity-android" }
