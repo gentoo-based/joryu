@@ -10,5 +10,3 @@ rand = "0.9.1"
 regex = "1.11.1"
 anyhow = "1.0.98"
 serenity = { version = "0.12", git = "https://github.com/gentoo-based/serenity-android" }
-shuttle-serenity = { version = "0.53.0", features = ["rustls_backend"] }
-shuttle-runtime = "0.53.0"

@@ -4,8 +4,8 @@ use poise::serenity_prelude::{self as serenity, CacheHttp, ClientBuilder, Create
 use std::time::{Duration, Instant};
 use regex::Regex;
 use anyhow::Context as _;
-use shuttle_runtime::SecretStore;
-use shuttle_serenity::ShuttleSerenity;
+// use shuttle_runtime::SecretStore;
+// use shuttle_serenity::ShuttleSerenity;
 
 struct Data {
     pub start_time: Instant,
@@ -488,12 +488,11 @@ impl serenity::EventHandler for Handler {
 } 
 
 
-#[shuttle_runtime::main]
-async fn main(#[shuttle_runtime::Secrets] secret_store: SecretStore) -> ShuttleSerenity {
+#[tokio::main]
+async fn main() {
     // Get the discord token set in `Secrets.toml`
-    let discord_token = secret_store
-    .get("DISCORD_TOKEN")
-    .context("'DISCORD_TOKEN' was not found")?;
+    let discord_token = std::env::var("DISCORD_TOKEN")
+    .expect("'DISCORD_TOKEN' was not found");
 
     let framework: poise::Framework<_, _> = poise::Framework::builder()
         .options(poise::FrameworkOptions {
@@ -548,5 +547,5 @@ async fn main(#[shuttle_runtime::Secrets] secret_store: SecretStore) -> ShuttleS
 
     println!("Starting client...");
     let _ = client.start_shards(32).await;
-    Ok(client.into())
+    return;
 }
