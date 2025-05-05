@@ -1,6 +1,6 @@
 use rand::Rng;
 // use meval;
-use poise::serenity_prelude::{self as serenity, CacheHttp, ClientBuilder, CreateMessage, GatewayIntents, Mentionable, Ready};
+use poise::{serenity_prelude::{self as serenity, CacheHttp, ClientBuilder, CreateAttachment, CreateMessage, GatewayIntents, Mentionable, Ready}};
 use std::time::{Duration, Instant};
 use regex::Regex;
 // use shuttle_runtime::SecretStore;
@@ -288,35 +288,62 @@ async fn say(
 #[poise::command(slash_command, prefix_command, owners_only)]
 async fn echo(
     ctx: Context<'_>,
-    #[description = "Message to relay to the public."] message: String,
+    #[description = "Message to relay to the public."] message: Option<String>,
     #[description = "Message to reply to."] messageid: Option<serenity::MessageId>,
-    #[description = "User to privately message."] user: Option<serenity::Member>
+    #[description = "User to privately message."] user: Option<serenity::User>,
+    #[description = "Attachment to display."] attachment: Option<serenity::Attachment>
 ) -> Result<(), Error> {
     // Delete original message if prefix command
     if let poise::Context::Prefix(prefix_ctx) = ctx {
         prefix_ctx.msg.delete(&ctx.serenity_context()).await?;
     } else {
-        ctx.defer_ephemeral().await?;
-        ctx.say("Sent!").await?;
+        ctx.send(poise::CreateReply::default().ephemeral(true).content("Sent!").reply(true)).await?;
     }
-    if let Some(messaged) = messageid {
-        poise::serenity_prelude::Message::reply_ping(
-            &ctx.channel_id().message(ctx.http(), messaged).await?,
-            ctx.http(),
-            message.clone(),
-        )
-        .await?;
-        return Ok(());
-        /* Deprecated
-                else if let Some(_attachment) = attachment {
-                    ctx.say("I'm sorry but attachments can't be used with replies. Use it seperately.").await?;
+    match attachment {
+        Some(attachment) => {
+            match message {
+                Some(message) => {
+                    match messageid {
+                        Some(_) => {}
+                        None => {}
+                    }
+                    match user {
+                        Some(user) => {
+                            user.direct_message(ctx.http(), CreateMessage::default().content(message.clone()).add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
+                            return Ok(());
+                        }
+                        None => {}
+                    }
+                    ctx.channel_id().send_message(&ctx.serenity_context().http(), CreateMessage::default().content(message.clone()).add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
+                    return Ok(());
                 }
-        */
-    } else if let Some(user) = user {
-        user.user.direct_message(ctx.http(), CreateMessage::default().content(message)).await?;
-        return Ok(());
+                None => {}
+            }
+            ctx.channel_id().send_message(&ctx.serenity_context().http(), CreateMessage::default().add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
+        } 
+        None => {}
     }
-    ctx.channel_id().say(&ctx.serenity_context().http(), message.clone()).await?;
+    match message {
+        Some(message) => {
+            match messageid {
+                Some(messageid) => {
+                    serenity::Message::reply_ping(&serenity::ChannelId::message(ctx.channel_id(), ctx.http(), messageid).await?, ctx.http(), message).await?;
+                    return Ok(());
+                }
+                None => {}
+            }
+            match user {
+                Some(user) => {
+                    user.direct_message(ctx.http(), CreateMessage::default().content(message.clone())).await?;
+                    return Ok(());
+                }
+                None => {}
+            }
+            ctx.channel_id().say(&ctx.serenity_context().http(), message.clone()).await?;
+            return Ok(());
+        }
+        None => {}
+    }
     return Ok(());
 }
 
