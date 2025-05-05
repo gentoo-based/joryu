@@ -3,8 +3,6 @@ use rand::Rng;
 use poise::{serenity_prelude::{self as serenity, CacheHttp, ClientBuilder, CreateAttachment, CreateMessage, GatewayIntents, Mentionable, Ready}};
 use std::time::{Duration, Instant};
 use regex::Regex;
-use shuttle_runtime::SecretStore;
-use shuttle_serenity::ShuttleSerenity;
 use std::{fs, path::PathBuf};
 struct Data {
     pub start_time: Instant,
@@ -576,8 +574,8 @@ impl serenity::EventHandler for Handler {
 } 
 
 
-#[shuttle_runtime::main]
-async fn main(#[shuttle_runtime::Secrets] secret_store: SecretStore) -> ShuttleSerenity {
+#[tokio::main]
+async fn main() {
     // Get the discord token set in `Secrets.toml`
     let discord_token = std::env::var("DISCORD_TOKEN")
     .expect("'DISCORD_TOKEN' was not found");
