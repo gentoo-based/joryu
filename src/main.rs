@@ -1,6 +1,6 @@
 use rand::Rng;
 // use meval;
-use poise::serenity_prelude::{self as serenity, CacheHttp, ClientBuilder, CreateMessage, GatewayIntents, Mentionable, Ready};
+use poise::{serenity_prelude::{self as serenity, CacheHttp, ClientBuilder, CreateMessage, GatewayIntents, Mentionable, Ready}, CreateReply};
 use std::time::{Duration, Instant};
 use regex::Regex;
 // use shuttle_runtime::SecretStore;
@@ -22,6 +22,48 @@ async fn fly(ctx: Context<'_>, user: serenity::Member) -> Result<(), Error> {
     
 }
 
+
+use std::{fs, path::PathBuf};
+
+#[poise::command(slash_command, prefix_command)]
+async fn getmeme(
+    ctx: Context<'_>,
+    #[description = "The name of the meme (without extension)"] name: String,
+) -> Result<(), Error> {
+    let memes_path = PathBuf::from("./memes");
+    let mut found_meme: Option<PathBuf> = None;
+
+    if let Ok(entries) = fs::read_dir(&memes_path) {
+        for entry in entries {
+            if let Ok(entry) = entry {
+                if let Some(file_name_with_ext) = entry.file_name().to_str() {
+                    if let Some((file_name_without_ext, _)) = file_name_with_ext.rsplit_once('.') {
+                        if file_name_without_ext == name {
+                            found_meme = Some(entry.path());
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    match found_meme {
+        Some(meme_path) => {
+            ctx.send(poise::CreateReply::default().content("Here is your meme, sir.").ephemeral(true)).await?;
+            ctx.channel_id().send_files(&ctx.serenity_context().http, serenity::CreateAttachment::path(meme_path).await, CreateMessage::default()).await?;
+        }
+        None => {
+            ctx.say(format!(
+                "Hush now... the meme named '{}' seems to elude us in the `./memes` folder.",
+                name
+            ))
+            .await?;
+        }
+    }
+
+    Ok(())
+}
 
 /// Shows an embed about the bot and the authors of the bot.
 #[poise::command(slash_command, prefix_command)]
