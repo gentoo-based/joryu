@@ -1,6 +1,6 @@
 use rand::Rng;
 // use meval;
-use poise::{serenity_prelude::{self as serenity, CacheHttp, ClientBuilder, CreateAttachment, CreateMessage, GatewayIntents, Mentionable, Ready}};
+use poise::serenity_prelude::{self as serenity, CacheHttp, ClientBuilder, CreateAttachment, CreateMessage, GatewayIntents, Mentionable, Ready};
 use std::time::{Duration, Instant};
 use regex::Regex;
 use std::{fs, path::PathBuf};
@@ -29,7 +29,7 @@ mod commands {
         #[description = "The name of the meme (without extension)"] name: String,
     ) -> Result<(), Error> {
         let memes_path = PathBuf::from("./memes");
-        let mut found_meme: Option<PathBuf> = None;
+        let mut found_meme: Option<PathBuf> = none;
     
         if let Ok(entries) = fs::read_dir(&memes_path) {
             for entry in entries {
@@ -51,7 +51,7 @@ mod commands {
                 ctx.send(poise::CreateReply::default().content("Here is your meme, sir.").ephemeral(true)).await?;
                 ctx.channel_id().send_files(&ctx.serenity_context().http, serenity::CreateAttachment::path(meme_path).await, CreateMessage::default()).await?;
             }
-            None => {
+            none => {
                 ctx.say(format!(
                     "Hush now... the meme named '{}' seems to elude us in the `./memes` folder.",
                     name
@@ -218,7 +218,7 @@ mod commands {
                 return Some(result);
             }
         }
-        None
+        none
     }
     
     /// Calculate simple math expressions.
@@ -306,11 +306,11 @@ mod commands {
                                 serenity::Message::reply_ping(&serenity::ChannelId::message(ctx.channel_id(), ctx.http(), messageid).await?, ctx.http(), message).await?;
                                 return  Ok(());
                             }
-                            None => {
+                            none => {
                             }
                         }
                     }
-                    None => {}
+                    none => {}
                 }
                 match user {
                     Some(user) => {
@@ -319,25 +319,25 @@ mod commands {
                                 user.direct_message(ctx.http(), CreateMessage::default().content(message.clone()).add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
                                 return  Ok(());
                             }
-                            None => {
+                            none => {
                                 user.direct_message(ctx.http(), CreateMessage::default().add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
                                 return  Ok(());
                             }
                         }
                     }
-                    None => {}
+                    none => {}
                 }
                 match message {
                     Some(message) => {
                         ctx.channel_id().send_message(&ctx.serenity_context().http(), CreateMessage::default().content(message.clone()).add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
                     }
-                    None => {
+                    none => {
                         ctx.channel_id().send_message(&ctx.serenity_context().http(), CreateMessage::default().add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
                     }
                 }
                 return Ok(());
             }
-            None => {}
+            none => {}
         }
         match message {
             Some(message) => {
@@ -346,19 +346,19 @@ mod commands {
                         serenity::Message::reply_ping(&serenity::ChannelId::message(ctx.channel_id(), ctx.http(), messageid).await?, ctx.http(), message).await?;
                         return Ok(());
                     }
-                    None => {}
+                    none => {}
                 }
                 match user {
                     Some(user) => {
                         user.direct_message(ctx.http(), CreateMessage::default().content(message.clone())).await?;
                         return Ok(());
                     }
-                    None => {}
+                    none => {}
                 }
                 ctx.channel_id().say(&ctx.serenity_context().http(), message.clone()).await?;
                 return Ok(());
             }
-            None => {}
+            none => {}
         }
         return Ok(());
     }
@@ -566,7 +566,7 @@ impl serenity::EventHandler for Handler {
         let comprehensive_pattern = r"(?i)\b(Microsoft|MS|Windows|Win|XP|Vista|NT)\b";
         let re_comprehensive = Regex::new(comprehensive_pattern).unwrap(); // Handle errors properly!
         let messagere = re_comprehensive.is_match(&message.content.clone());
-        if messagere && message.author.id != 1290208793694572597 {
+        if messagere && !message.bot {
             let insult = rand::seq::IndexedRandom::choose(INSULTS, &mut rand::rng()).unwrap();
             let _ = message.reply_ping(context.http, *insult).await;
         }
