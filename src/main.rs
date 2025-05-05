@@ -6,499 +6,502 @@ use regex::Regex;
 // use shuttle_runtime::SecretStore;
 // use shuttle_serenity::ShuttleSerenity;
 
+use std::{fs, path::PathBuf};
 struct Data {
     pub start_time: Instant,
 } // User data, which is stored and accessible in all command invocations
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
-/// Funny command that lets users fly.
-#[poise::command(slash_command, prefix_command)]
-async fn fly(ctx: Context<'_>, user: serenity::Member) -> Result<(), Error> {
 
-    ctx.say(format!("Fly high {}", user.mention())).await?;
-    ctx.say("https://tenor.com/view/fly-human-fly-float-human-airplane-meme-gif-5277954545468410794").await?;
-    Ok(())
+mod commands {
+    use super::*;
+
+    /// Funny command that lets users fly.
+    #[poise::command(slash_command, prefix_command)]
+    pub async fn fly(ctx: Context<'_>, user: serenity::Member) -> Result<(), Error> {
+
+        ctx.say(format!("Fly high {}", user.mention())).await?;
+        ctx.say("https://tenor.com/view/fly-human-fly-float-human-airplane-meme-gif-5277954545468410794").await?;
+        Ok(())
+        
+    }
+    #[poise::command(slash_command, prefix_command)]
+    pub async fn meme(
+        ctx: Context<'_>,
+        #[description = "The name of the meme (without extension)"] name: String,
+    ) -> Result<(), Error> {
+        let memes_path = PathBuf::from("./memes");
+        let mut found_meme: Option<PathBuf> = None;
     
-}
-
-
-use std::{fs, path::PathBuf};
-
-#[poise::command(slash_command, prefix_command)]
-async fn meme(
-    ctx: Context<'_>,
-    #[description = "The name of the meme (without extension)"] name: String,
-) -> Result<(), Error> {
-    let memes_path = PathBuf::from("./memes");
-    let mut found_meme: Option<PathBuf> = None;
-
-    if let Ok(entries) = fs::read_dir(&memes_path) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                if let Some(file_name_with_ext) = entry.file_name().to_str() {
-                    if let Some((file_name_without_ext, _)) = file_name_with_ext.rsplit_once('.') {
-                        if file_name_without_ext == name {
-                            found_meme = Some(entry.path());
-                            break;
+        if let Ok(entries) = fs::read_dir(&memes_path) {
+            for entry in entries {
+                if let Ok(entry) = entry {
+                    if let Some(file_name_with_ext) = entry.file_name().to_str() {
+                        if let Some((file_name_without_ext, _)) = file_name_with_ext.rsplit_once('.') {
+                            if file_name_without_ext == name {
+                                found_meme = Some(entry.path());
+                                break;
+                            }
                         }
                     }
                 }
             }
         }
-    }
-
-    match found_meme {
-        Some(meme_path) => {
-            ctx.send(poise::CreateReply::default().content("Here is your meme, sir.").ephemeral(true)).await?;
-            ctx.channel_id().send_files(&ctx.serenity_context().http, serenity::CreateAttachment::path(meme_path).await, CreateMessage::default()).await?;
+    
+        match found_meme {
+            Some(meme_path) => {
+                ctx.send(poise::CreateReply::default().content("Here is your meme, sir.").ephemeral(true)).await?;
+                ctx.channel_id().send_files(&ctx.serenity_context().http, serenity::CreateAttachment::path(meme_path).await, CreateMessage::default()).await?;
+            }
+            None => {
+                ctx.say(format!(
+                    "Hush now... the meme named '{}' seems to elude us in the `./memes` folder.",
+                    name
+                ))
+                .await?;
+            }
         }
-        None => {
-            ctx.say(format!(
-                "Hush now... the meme named '{}' seems to elude us in the `./memes` folder.",
-                name
+    
+        Ok(())
+    }
+    
+    /// Shows an embed about the bot and the authors of the bot.
+    #[poise::command(slash_command, prefix_command)]
+    pub async fn about(ctx: Context<'_>) -> Result<(), Error> {
+        let embed = serenity::CreateEmbed::new()
+            .title("The Dragon Of Dojima")
+            .description(format!(
+                "This discord bot mainly has components of fun, and moderation. It is written in rust, and hosted on github."
             ))
-            .await?;
-        }
-    }
-
-    Ok(())
-}
-
-/// Shows an embed about the bot and the authors of the bot.
-#[poise::command(slash_command, prefix_command)]
-async fn about(ctx: Context<'_>) -> Result<(), Error> {
-    let embed = serenity::CreateEmbed::new()
-        .title("The Dragon Of Dojima")
-        .description(format!(
-            "This discord bot mainly has components of fun, and moderation. It is written in rust, and hosted on github."
-        ))
-        .field(
-            "Author",
-            format!(
-                "Made by <@1221614686865461259>"
-            ),
-            false,
-        )
-        .field(
-            "Hosting Service",
-            format!(
-                "https://shuttle.dev"
-            ),
-            false,
-        )
-        .field(
-            "Support Server",
-            format!(
-                "https://discord.gg/D3WEJ46QrQ"
-            ),
-            false,
-        )
-        .field(
-            "Version #",
-            format!(
-                "0.5v"
-            ),
-            false,
-        )
-        .color(serenity::Color::DARK_RED);
-
-    ctx.send(poise::CreateReply::default().embed(embed)).await?;
-    Ok(())
-}
-
-/// Show help menu with all available commands
-#[poise::command(slash_command, prefix_command)]
-async fn help(ctx: Context<'_>) -> Result<(), Error> {
-    let prefix: &str = "td!";
-    let ctx_id = ctx.id();
-    let prev_button_id = format!("{}prev", ctx_id);
-    let next_button_id = format!("{}next", ctx_id);
-    let embed1 = serenity::CreateEmbed::new()
-        .title("Bot Commands Help")
-        .description(format!(
-            "Use `{}` before commands or `/` for slash commands\n\
-            [Support Server](https://discord.gg/D3WEJ46QrQ)",
-            prefix
-        ))
-        .field("# GENERAL COMMANDS", "Silly, general commands that can be used by anyone.", false)
-        .field(format!("{prefix}hello <user>"), "Greet a specific user or everyone", false)
-        .field(format!("{prefix}ping"), "It shows the shard id of the current context, api latency and uptime.", false)
-        .field(format!("{prefix}say <message>"), "Relays a message with your own message redirected with the bot.", false)
-        .field(format!("{prefix}sync"), "Registers application commands globally. (Owner Only)", false)
-        .field(format!("{prefix}echo <message> <messageid> <user>"), "Relays a message, replies to a message, or privately message a user with a message. (Owner Only)", false)
-        .field(format!("{prefix}facts"), "Gets a random fact.", false)
-        .field(format!("{prefix}joryu"), "Generates a random quote from Kiryu Kazuma from the hit game series: Yakuza.", false)
-        .field(format!("{prefix}about"), "Shows information about the bot.", false)
-        .field(format!("{prefix}roll <min> <max>"), "Generate random number between min and max", false)
-        .field(format!("{prefix}solve <expression>"), "Calculate math expressions", false)
-        .field(format!("{prefix}fly <user>"), "Funny command that doesn't actually let people fly.", false)
-        .color(serenity::Color::DARK_RED);
-    let embed2 = serenity::CreateEmbed::new()
-        .title("Bot Commands Help")
-        .description(format!(
-            "Use `{}` before commands or `/` for slash commands\n\
-            [Support Server](https://discord.gg/D3WEJ46QrQ)",
-            prefix
-        ))
-        .field("# MODERATION COMMANDS", "Commands that are used to moderate a user, by banning, kicking, or muting (todo)", false)
-        .field(format!("{prefix}ban <user> <reason>"), "Ban a user with the specified reason.", false)
-        .field(format!("{prefix}unban <user> <reason>"), "Unban a user with the specified reason.", false)
-        .field(format!("{prefix}timeout <user> <time> <reason> "), "Time a user out with the specified reason and the specified time.", false)
-        .field(format!("{prefix}kick <user> <reason>"), "Kick a user with the specified reason.", false)
-        .color(serenity::Color::DARK_RED);
-    let reply = {
-        let components = serenity::CreateActionRow::Buttons(vec![
-            serenity::CreateButton::new(&prev_button_id).emoji('◀'),
-            serenity::CreateButton::new(&next_button_id).emoji('▶'),
-        ]);
-
-        poise::CreateReply::default()
-            .embed(embed1.clone())
-            .components(vec![components])
-    };
-
-    let pages: &[serenity::CreateEmbed] = &[embed1.clone(), embed2.clone()];
-    ctx.send(reply).await?;
-
-    // Loop through incoming interactions with the navigation buttons
-    let mut current_page = 0;
-    while let Some(press) = serenity::collector::ComponentInteractionCollector::new(ctx)
-        // We defined our button IDs to start with `ctx_id`. If they don't, some other command's
-        // button was pressed
-        .filter(move |press| press.data.custom_id.starts_with(&ctx_id.to_string()))
-        // Timeout when no navigation button has been pressed for 24 hours
-        .timeout(std::time::Duration::from_secs(3600 * 24))
-        .await
-    {
-        // Depending on which button was pressed, go to next or previous page
-        if press.data.custom_id == next_button_id {
-            current_page += 1;
-            if current_page >= pages.len() {
-                current_page = 0;
-            }
-        } else if press.data.custom_id == prev_button_id {
-            current_page = current_page.checked_sub(1).unwrap_or(pages.len() - 1);
-        } else {
-            // This is an unrelated button interaction
-            continue;
-        }
-
-        // Update the message with the new page contents
-        press
-            .create_response(
-                ctx.serenity_context(),
-                serenity::CreateInteractionResponse::UpdateMessage(
-                    serenity::CreateInteractionResponseMessage::new()
-                        .embed(pages[current_page].clone()),
+            .field(
+                "Author",
+                format!(
+                    "Made by <@1221614686865461259>"
                 ),
+                false,
             )
-            .await?;
-    }
-
-    Ok(())
-}
-
-/// Greet a specific user or everyone
-#[poise::command(slash_command, prefix_command)]
-async fn hello(ctx: Context<'_>, user: Option<serenity::User>) -> Result<(), Error> {
-    let greeting = match user {
-        Some(user) => format!("👋 Hey there, {}!", user.name),
-        _none => "👋 Hello everyone!".to_string(),
-    };
-    ctx.say(greeting).await?;
-    Ok(())
-}
-
-fn calc_inner(expr: &str) -> Option<f64> {
-    let ops: &[(char, fn(f64, f64) -> f64)] = &[
-        ('+', |a, b| a + b), ('-', |a, b| a - b), ('*', |a, b| a * b), ('/', |a, b| a / b)
-    ];
-    for &(operator, operator_fn) in ops {
-        if let Some((a, b)) = expr.split_once(operator) {
-            let result: f64 = (operator_fn)(a.trim().parse().ok()?, b.trim().parse().ok()?);
-            return Some(result);
-        }
-    }
-    None
-}
-
-/// Calculate simple math expressions.
-#[poise::command(slash_command, prefix_command)]
-pub async fn solve(ctx: Context<'_>, expr: String) -> Result<(), Error> {
-    match calc_inner(&expr) {
-        Some(result) => ctx.say(format!("Result: {}", result)).await?,
-        _none => ctx.say("Failed to evaluate expression!").await?,
-    };
-    Ok(())
-}
-
-/// Ping command: shows shard id of the current context, api latency and uptime.
-#[poise::command(slash_command, prefix_command)]
-async fn ping(ctx: Context<'_>) -> Result<(), Error> {
-    // 1. Measure message round-trip latency
-    let now = Instant::now();
-    let reply = ctx.say("Pinging...").await?;
-    let api_latency = now.elapsed();
+            .field(
+                "Hosting Service",
+                format!(
+                    "https://shuttle.dev"
+                ),
+                false,
+            )
+            .field(
+                "Support Server",
+                format!(
+                    "https://discord.gg/D3WEJ46QrQ"
+                ),
+                false,
+            )
+            .field(
+                "Version #",
+                format!(
+                    "0.5v"
+                ),
+                false,
+            )
+            .color(serenity::Color::DARK_RED);
     
-    // 2. Get the current shard latency
-    let shard: serenity::ShardId = ctx.serenity_context().shard_id;
-
-    // 3. Calculate uptime
-    let uptime = ctx.data().start_time.elapsed();
-
-    // 4. Format response
-    let response = format!(
-        "Pong!\n\
-        • Shard ID: {}\n\
-        • API latency: {} ms\n\
-        • Uptime: {}",
-        shard,
-        api_latency.as_millis(),
-        format_durationu(uptime)
-    );
-
-    // 5. Edit the original reply with result.
-    reply.edit(ctx, poise::CreateReply::default().content(response)).await?;
-    Ok(())
-}
-
-// Helper function to format Duration as H:M:S
-fn format_durationu(d: Duration) -> String {
-    let secs = d.as_secs();
-    let hours = secs / 3600;
-    let mins = (secs % 3600) / 60;
-    let secs = secs % 60;
-    format!("{:02}:{:02}:{:02}", hours, mins, secs)
-}
-
-/// Relays a message with your own message redirected with the bot.
-#[poise::command(slash_command)]
-async fn say(
-    ctx: Context<'_>,
-    #[description = "Message to relay to the public."] message: String,
-) -> Result<(), Error> {
-    // Delete original message if prefix command
-    ctx.defer().await?;
-    ctx.say(message).await?;
-    Ok(())
-}
-
-/// Relays a message, replies to a message, or privately message a user with a message. (Owner Only)
-#[poise::command(slash_command, prefix_command, owners_only)]
-async fn echo(
-    ctx: Context<'_>,
-    #[description = "Message to relay to the public."] message: Option<String>,
-    #[description = "Message to reply to."] messageid: Option<serenity::MessageId>,
-    #[description = "User to privately message."] user: Option<serenity::User>,
-    #[description = "Attachment to display."] attachment: Option<serenity::Attachment>
-) -> Result<(), Error> {
-    // Delete original message if prefix command
-    if let poise::Context::Prefix(prefix_ctx) = ctx {
-        prefix_ctx.msg.delete(&ctx.serenity_context()).await?;
-    } else {
-        ctx.send(poise::CreateReply::default().ephemeral(true).content("Sent!").reply(true)).await?;
+        ctx.send(poise::CreateReply::default().embed(embed)).await?;
+        Ok(())
     }
-    match attachment {
-        Some(attachment) => {
-            match messageid {
-                Some(messageid) => {
-                    match message {
-                        Some(message) => {
-                            serenity::Message::reply_ping(&serenity::ChannelId::message(ctx.channel_id(), ctx.http(), messageid).await?, ctx.http(), message).await?;
-                            return  Ok(());
-                        }
-                        None => {
+    
+    /// Show help menu with all available commands
+    #[poise::command(slash_command, prefix_command)]
+    pub async fn help(ctx: Context<'_>) -> Result<(), Error> {
+        let prefix: &str = "td!";
+        let ctx_id = ctx.id();
+        let prev_button_id = format!("{}prev", ctx_id);
+        let next_button_id = format!("{}next", ctx_id);
+        let embed1 = serenity::CreateEmbed::new()
+            .title("Bot Commands Help")
+            .description(format!(
+                "Use `{}` before commands or `/` for slash commands\n\
+                [Support Server](https://discord.gg/D3WEJ46QrQ)",
+                prefix
+            ))
+            .field("# GENERAL COMMANDS", "Silly, general commands that can be used by anyone.", false)
+            .field(format!("{prefix}hello <user>"), "Greet a specific user or everyone", false)
+            .field(format!("{prefix}ping"), "It shows the shard id of the current context, api latency and uptime.", false)
+            .field(format!("{prefix}say <message>"), "Relays a message with your own message redirected with the bot.", false)
+            .field(format!("{prefix}sync"), "Registers application commands globally. (Owner Only)", false)
+            .field(format!("{prefix}echo <message> <messageid> <user>"), "Relays a message, replies to a message, or privately message a user with a message. (Owner Only)", false)
+            .field(format!("{prefix}facts"), "Gets a random fact.", false)
+            .field(format!("{prefix}joryu"), "Generates a random quote from Kiryu Kazuma from the hit game series: Yakuza.", false)
+            .field(format!("{prefix}about"), "Shows information about the bot.", false)
+            .field(format!("{prefix}roll <min> <max>"), "Generate random number between min and max", false)
+            .field(format!("{prefix}solve <expression>"), "Calculate math expressions", false)
+            .field(format!("{prefix}fly <user>"), "Funny command that doesn't actually let people fly.", false)
+            .color(serenity::Color::DARK_RED);
+        let embed2 = serenity::CreateEmbed::new()
+            .title("Bot Commands Help")
+            .description(format!(
+                "Use `{}` before commands or `/` for slash commands\n\
+                [Support Server](https://discord.gg/D3WEJ46QrQ)",
+                prefix
+            ))
+            .field("# MODERATION COMMANDS", "Commands that are used to moderate a user, by banning, kicking, or muting (todo)", false)
+            .field(format!("{prefix}ban <user> <reason>"), "Ban a user with the specified reason.", false)
+            .field(format!("{prefix}unban <user> <reason>"), "Unban a user with the specified reason.", false)
+            .field(format!("{prefix}timeout <user> <time> <reason> "), "Time a user out with the specified reason and the specified time.", false)
+            .field(format!("{prefix}kick <user> <reason>"), "Kick a user with the specified reason.", false)
+            .color(serenity::Color::DARK_RED);
+        let reply = {
+            let components = serenity::CreateActionRow::Buttons(vec![
+                serenity::CreateButton::new(&prev_button_id).emoji('◀'),
+                serenity::CreateButton::new(&next_button_id).emoji('▶'),
+            ]);
+    
+            poise::CreateReply::default()
+                .embed(embed1.clone())
+                .components(vec![components])
+        };
+    
+        let pages: &[serenity::CreateEmbed] = &[embed1.clone(), embed2.clone()];
+        ctx.send(reply).await?;
+    
+        // Loop through incoming interactions with the navigation buttons
+        let mut current_page = 0;
+        while let Some(press) = serenity::collector::ComponentInteractionCollector::new(ctx)
+            // We defined our button IDs to start with `ctx_id`. If they don't, some other command's
+            // button was pressed
+            .filter(move |press| press.data.custom_id.starts_with(&ctx_id.to_string()))
+            // Timeout when no navigation button has been pressed for 24 hours
+            .timeout(std::time::Duration::from_secs(3600 * 24))
+            .await
+        {
+            // Depending on which button was pressed, go to next or previous page
+            if press.data.custom_id == next_button_id {
+                current_page += 1;
+                if current_page >= pages.len() {
+                    current_page = 0;
+                }
+            } else if press.data.custom_id == prev_button_id {
+                current_page = current_page.checked_sub(1).unwrap_or(pages.len() - 1);
+            } else {
+                // This is an unrelated button interaction
+                continue;
+            }
+    
+            // Update the message with the new page contents
+            press
+                .create_response(
+                    ctx.serenity_context(),
+                    serenity::CreateInteractionResponse::UpdateMessage(
+                        serenity::CreateInteractionResponseMessage::new()
+                            .embed(pages[current_page].clone()),
+                    ),
+                )
+                .await?;
+        }
+    
+        Ok(())
+    }
+    
+    /// Greet a specific user or everyone
+    #[poise::command(slash_command, prefix_command)]
+    pub async fn hello(ctx: Context<'_>, user: Option<serenity::User>) -> Result<(), Error> {
+        let greeting = match user {
+            Some(user) => format!("👋 Hey there, {}!", user.name),
+            _none => "👋 Hello everyone!".to_string(),
+        };
+        ctx.say(greeting).await?;
+        Ok(())
+    }
+    
+    fn calc_inner(expr: &str) -> Option<f64> {
+        let ops: &[(char, fn(f64, f64) -> f64)] = &[
+            ('+', |a, b| a + b), ('-', |a, b| a - b), ('*', |a, b| a * b), ('/', |a, b| a / b)
+        ];
+        for &(operator, operator_fn) in ops {
+            if let Some((a, b)) = expr.split_once(operator) {
+                let result: f64 = (operator_fn)(a.trim().parse().ok()?, b.trim().parse().ok()?);
+                return Some(result);
+            }
+        }
+        None
+    }
+    
+    /// Calculate simple math expressions.
+    #[poise::command(slash_command, prefix_command)]
+    pub async fn solve(ctx: Context<'_>, expr: String) -> Result<(), Error> {
+        match calc_inner(&expr) {
+            Some(result) => ctx.say(format!("Result: {}", result)).await?,
+            _none => ctx.say("Failed to evaluate expression!").await?,
+        };
+        Ok(())
+    }
+    
+    /// Ping command: shows shard id of the current context, api latency and uptime.
+    #[poise::command(slash_command, prefix_command)]
+    pub async fn ping(ctx: Context<'_>) -> Result<(), Error> {
+        // 1. Measure message round-trip latency
+        let now = Instant::now();
+        let reply = ctx.say("Pinging...").await?;
+        let api_latency = now.elapsed();
+        
+        // 2. Get the current shard latency
+        let shard: serenity::ShardId = ctx.serenity_context().shard_id;
+    
+        // 3. Calculate uptime
+        let uptime = ctx.data().start_time.elapsed();
+    
+        // 4. Format response
+        let response = format!(
+            "Pong!\n\
+            • Shard ID: {}\n\
+            • API latency: {} ms\n\
+            • Uptime: {}",
+            shard,
+            api_latency.as_millis(),
+            format_durationu(uptime)
+        );
+    
+        // 5. Edit the original reply with result.
+        reply.edit(ctx, poise::CreateReply::default().content(response)).await?;
+        Ok(())
+    }
+    
+    // Helper function to format Duration as H:M:S
+    fn format_durationu(d: Duration) -> String {
+        let secs = d.as_secs();
+        let hours = secs / 3600;
+        let mins = (secs % 3600) / 60;
+        let secs = secs % 60;
+        format!("{:02}:{:02}:{:02}", hours, mins, secs)
+    }
+    
+    /// Relays a message with your own message redirected with the bot.
+    #[poise::command(slash_command)]
+    pub async fn say(
+        ctx: Context<'_>,
+        #[description = "Message to relay to the public."] message: String,
+    ) -> Result<(), Error> {
+        // Delete original message if prefix command
+        ctx.defer().await?;
+        ctx.say(message).await?;
+        Ok(())
+    }
+    
+    /// Relays a message, replies to a message, or privately message a user with a message. (Owner Only)
+    #[poise::command(slash_command, prefix_command, owners_only)]
+    pub async fn echo(
+        ctx: Context<'_>,
+        #[description = "Message to relay to the public."] message: Option<String>,
+        #[description = "Message to reply to."] messageid: Option<serenity::MessageId>,
+        #[description = "User to privately message."] user: Option<serenity::User>,
+        #[description = "Attachment to display."] attachment: Option<serenity::Attachment>
+    ) -> Result<(), Error> {
+        // Delete original message if prefix command
+        if let poise::Context::Prefix(prefix_ctx) = ctx {
+            prefix_ctx.msg.delete(&ctx.serenity_context()).await?;
+        } else {
+            ctx.send(poise::CreateReply::default().ephemeral(true).content("Sent!").reply(true)).await?;
+        }
+        match attachment {
+            Some(attachment) => {
+                match messageid {
+                    Some(messageid) => {
+                        match message {
+                            Some(message) => {
+                                serenity::Message::reply_ping(&serenity::ChannelId::message(ctx.channel_id(), ctx.http(), messageid).await?, ctx.http(), message).await?;
+                                return  Ok(());
+                            }
+                            None => {
+                            }
                         }
                     }
+                    None => {}
                 }
-                None => {}
-            }
-            match user {
-                Some(user) => {
-                    match message {
-                        Some(message) => {
-                            user.direct_message(ctx.http(), CreateMessage::default().content(message.clone()).add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
-                            return  Ok(());
-                        }
-                        None => {
-                            user.direct_message(ctx.http(), CreateMessage::default().add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
-                            return  Ok(());
+                match user {
+                    Some(user) => {
+                        match message {
+                            Some(message) => {
+                                user.direct_message(ctx.http(), CreateMessage::default().content(message.clone()).add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
+                                return  Ok(());
+                            }
+                            None => {
+                                user.direct_message(ctx.http(), CreateMessage::default().add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
+                                return  Ok(());
+                            }
                         }
                     }
+                    None => {}
                 }
-                None => {}
+                match message {
+                    Some(message) => {
+                        ctx.channel_id().send_message(&ctx.serenity_context().http(), CreateMessage::default().content(message.clone()).add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
+                    }
+                    None => {
+                        ctx.channel_id().send_message(&ctx.serenity_context().http(), CreateMessage::default().add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
+                    }
+                }
+                return Ok(());
             }
-            match message {
-                Some(message) => {
-                    ctx.channel_id().send_message(&ctx.serenity_context().http(), CreateMessage::default().content(message.clone()).add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
-                }
-                None => {
-                    ctx.channel_id().send_message(&ctx.serenity_context().http(), CreateMessage::default().add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
-                }
-            }
-            return Ok(());
+            None => {}
         }
-        None => {}
-    }
-    match message {
-        Some(message) => {
-            match messageid {
-                Some(messageid) => {
-                    serenity::Message::reply_ping(&serenity::ChannelId::message(ctx.channel_id(), ctx.http(), messageid).await?, ctx.http(), message).await?;
-                    return Ok(());
+        match message {
+            Some(message) => {
+                match messageid {
+                    Some(messageid) => {
+                        serenity::Message::reply_ping(&serenity::ChannelId::message(ctx.channel_id(), ctx.http(), messageid).await?, ctx.http(), message).await?;
+                        return Ok(());
+                    }
+                    None => {}
                 }
-                None => {}
-            }
-            match user {
-                Some(user) => {
-                    user.direct_message(ctx.http(), CreateMessage::default().content(message.clone())).await?;
-                    return Ok(());
+                match user {
+                    Some(user) => {
+                        user.direct_message(ctx.http(), CreateMessage::default().content(message.clone())).await?;
+                        return Ok(());
+                    }
+                    None => {}
                 }
-                None => {}
+                ctx.channel_id().say(&ctx.serenity_context().http(), message.clone()).await?;
+                return Ok(());
             }
-            ctx.channel_id().say(&ctx.serenity_context().http(), message.clone()).await?;
-            return Ok(());
+            None => {}
         }
-        None => {}
-    }
-    return Ok(());
-}
-
-/// Registers application commands globally. (Owner Only)
-#[poise::command(slash_command, prefix_command, owners_only)]
-async fn sync(
-    ctx: Context<'_>
-) -> Result<(), Error> {
-    poise::samples::register_application_commands(ctx, true).await?;
-    ctx.say("Properly registered the application commands globally.").await?;
-    return Ok(());
-}
-
-/// Get random messages from Joryu (The Man Who Erased His Name)
-#[poise::command(slash_command, prefix_command)]
-async fn joryu(ctx: Context<'_>) -> Result<(), Error> {
-    static MESSAGES: &[&str] = &[
-        "aaaaaaaaaAAAAAAAAAAAAAAAA",
-        "Joryu, The Dragon of Dojima!",
-        "Hail John Yakuza",
-        "John Yakuza rapes anyone who dares speak.",
-        "-# shh",
-        "🤫",
-        "idk",
-        "KUZEEE!!!!!!",
-        "Haruka?",
-        "Thing is, I have cancer...",
-        "Are you sure?",
-        "I'd tiger drop",
-        "Hello.",
-        "John Yakuza hates anyone who speaks loudly of him.",
-        "That's rad",
-        "Shinitai yatsu dake-- Kakatte koi!",
-        "KIRYUUUUU!!!",
-        "what??"
-    ];
-
-    let fact = rand::seq::IndexedRandom::choose(MESSAGES, &mut rand::rng()).unwrap();
-    ctx.say(format!("{}", fact)).await?;
-    Ok(())
-}
-
-/// Get a random interesting fact
-#[poise::command(slash_command, prefix_command)]
-async fn facts(ctx: Context<'_>) -> Result<(), Error> {
-    static FACTS: &[&str] = &[
-        "Honey never spoils - 3000-year-old honey found in Egyptian tombs is still edible!",
-        "Octopuses have three hearts and blue blood",
-        "Bananas are berries but strawberries aren't",
-        "The Eiffel Tower grows 15cm taller in summer due to thermal expansion",
-        "A day on Venus is longer than its year",
-        "There's enough DNA in your body to stretch to stretch to Pluto and back 17 times",
-        "The first computer virus was created in 1983",
-        "A group of flamingos is called a 'flamboyance'",
-        "The inventor of the frisbee was turned into a frisbee after death",
-        "You can't hum while holding your nose closed",
-    ];
-
-    let fact = rand::seq::IndexedRandom::choose(FACTS, &mut rand::rng()).unwrap();
-    ctx.say(format!("📚 **Did you know?**\n{}", fact)).await?;
-    Ok(())
-}
-
-/// Generate random number between min and max
-#[poise::command(slash_command, prefix_command)]
-async fn roll(
-    ctx: Context<'_>,
-    #[description = "Minimum value"] min: i32,
-    #[description = "Maximum value"] max: i32,
-) -> Result<(), Error> {
-    if min >= max {
-        ctx.say("❌ Minimum value must be less than maximum!").await?;
         return Ok(());
     }
-
-    let result = rand::rng().random_range(min..=max);
-    ctx.say(format!("🎲 Your random number: {}", result)).await?;
-    Ok(())
+    
+    /// Registers application commands globally. (Owner Only)
+    #[poise::command(slash_command, prefix_command, owners_only)]
+    pub async fn sync(
+        ctx: Context<'_>
+    ) -> Result<(), Error> {
+        poise::samples::register_application_commands(ctx, true).await?;
+        ctx.say("Properly registered the application commands globally.").await?;
+        return Ok(());
+    }
+    
+    /// Get random messages from Joryu (The Man Who Erased His Name)
+    #[poise::command(slash_command, prefix_command)]
+    pub async fn joryu(ctx: Context<'_>) -> Result<(), Error> {
+        static MESSAGES: &[&str] = &[
+            "aaaaaaaaaAAAAAAAAAAAAAAAA",
+            "Joryu, The Dragon of Dojima!",
+            "Hail John Yakuza",
+            "John Yakuza rapes anyone who dares speak.",
+            "-# shh",
+            "🤫",
+            "idk",
+            "KUZEEE!!!!!!",
+            "Haruka?",
+            "Thing is, I have cancer...",
+            "Are you sure?",
+            "I'd tiger drop",
+            "Hello.",
+            "John Yakuza hates anyone who speaks loudly of him.",
+            "That's rad",
+            "Shinitai yatsu dake-- Kakatte koi!",
+            "KIRYUUUUU!!!",
+            "what??"
+        ];
+    
+        let fact = rand::seq::IndexedRandom::choose(MESSAGES, &mut rand::rng()).unwrap();
+        ctx.say(format!("{}", fact)).await?;
+        Ok(())
+    }
+    
+    /// Get a random interesting fact
+    #[poise::command(slash_command, prefix_command)]
+    pub async fn facts(ctx: Context<'_>) -> Result<(), Error> {
+        static FACTS: &[&str] = &[
+            "Honey never spoils - 3000-year-old honey found in Egyptian tombs is still edible!",
+            "Octopuses have three hearts and blue blood",
+            "Bananas are berries but strawberries aren't",
+            "The Eiffel Tower grows 15cm taller in summer due to thermal expansion",
+            "A day on Venus is longer than its year",
+            "There's enough DNA in your body to stretch to stretch to Pluto and back 17 times",
+            "The first computer virus was created in 1983",
+            "A group of flamingos is called a 'flamboyance'",
+            "The inventor of the frisbee was turned into a frisbee after death",
+            "You can't hum while holding your nose closed",
+        ];
+    
+        let fact = rand::seq::IndexedRandom::choose(FACTS, &mut rand::rng()).unwrap();
+        ctx.say(format!("📚 **Did you know?**\n{}", fact)).await?;
+        Ok(())
+    }
+    
+    /// Generate random number between min and max
+    #[poise::command(slash_command, prefix_command)]
+    pub async fn roll(
+        ctx: Context<'_>,
+        #[description = "Minimum value"] min: i32,
+        #[description = "Maximum value"] max: i32,
+    ) -> Result<(), Error> {
+        if min >= max {
+            ctx.say("❌ Minimum value must be less than maximum!").await?;
+            return Ok(());
+        }
+    
+        let result = rand::rng().random_range(min..=max);
+        ctx.say(format!("🎲 Your random number: {}", result)).await?;
+        Ok(())
+    }
+    
+    /// Ban a user from the server
+    #[poise::command(
+        slash_command,
+        prefix_command,
+        required_permissions = "BAN_MEMBERS"
+    )]
+    pub async fn ban(
+        ctx: Context<'_>,
+        #[description = "User to ban"] user: serenity::User,
+        #[description = "Reason for ban"] reason: Option<String>,
+    ) -> Result<(), Error> {
+        let guild_id = ctx.guild_id().expect("Must be used in guild");
+        let reason = reason.unwrap_or_else(|| "No reason provided".to_string());
+    
+        guild_id
+            .ban_with_reason(&ctx.serenity_context(), user.id, 0, &reason)
+            .await?;
+        ctx.say(format!("🔨 Banned {} | Reason: {}", user.tag(), reason)).await?;
+        Ok(())
+    }
+    
+    /// Unban a previously banned user
+    #[poise::command(
+        slash_command,
+        prefix_command,
+        required_permissions = "BAN_MEMBERS"
+    )]
+    pub async fn unban(
+        ctx: Context<'_>,
+        #[description = "User to unban"] user: serenity::User,
+    ) -> Result<(), Error> {
+        let guild_id = ctx.guild_id().expect("Must be used in guild");
+        guild_id.unban(&ctx.serenity_context(), user.id).await?;
+        ctx.say(format!("✅ Unbanned {}", user.tag())).await?;
+        Ok(())
+    }
+    
+    /// Kick a user from the server
+    #[poise::command(
+        slash_command,
+        prefix_command,
+        required_permissions = "KICK_MEMBERS"
+    )]
+    pub async fn kick(
+        ctx: Context<'_>,
+        #[description = "User to kick"] user: serenity::User,
+        #[description = "Reason for kick"] reason: Option<String>,
+    ) -> Result<(), Error> {
+        let guild_id = ctx.guild_id().expect("Must be used in guild");
+        let reason = reason.unwrap_or_else(|| "No reason provided".to_string());
+    
+        guild_id
+            .kick_with_reason(&ctx.serenity_context(), user.id, &reason)
+            .await?;
+        ctx.say(format!("👢 Kicked {} | Reason: {}", user.tag(), reason)).await?;
+        Ok(())
+    }
 }
 
-/// Ban a user from the server
-#[poise::command(
-    slash_command,
-    prefix_command,
-    required_permissions = "BAN_MEMBERS"
-)]
-async fn ban(
-    ctx: Context<'_>,
-    #[description = "User to ban"] user: serenity::User,
-    #[description = "Reason for ban"] reason: Option<String>,
-) -> Result<(), Error> {
-    let guild_id = ctx.guild_id().expect("Must be used in guild");
-    let reason = reason.unwrap_or_else(|| "No reason provided".to_string());
-
-    guild_id
-        .ban_with_reason(&ctx.serenity_context(), user.id, 0, &reason)
-        .await?;
-    ctx.say(format!("🔨 Banned {} | Reason: {}", user.tag(), reason)).await?;
-    Ok(())
-}
-
-/// Unban a previously banned user
-#[poise::command(
-    slash_command,
-    prefix_command,
-    required_permissions = "BAN_MEMBERS"
-)]
-async fn unban(
-    ctx: Context<'_>,
-    #[description = "User to unban"] user: serenity::User,
-) -> Result<(), Error> {
-    let guild_id = ctx.guild_id().expect("Must be used in guild");
-    guild_id.unban(&ctx.serenity_context(), user.id).await?;
-    ctx.say(format!("✅ Unbanned {}", user.tag())).await?;
-    Ok(())
-}
-
-/// Kick a user from the server
-#[poise::command(
-    slash_command,
-    prefix_command,
-    required_permissions = "KICK_MEMBERS"
-)]
-async fn kick(
-    ctx: Context<'_>,
-    #[description = "User to kick"] user: serenity::User,
-    #[description = "Reason for kick"] reason: Option<String>,
-) -> Result<(), Error> {
-    let guild_id = ctx.guild_id().expect("Must be used in guild");
-    let reason = reason.unwrap_or_else(|| "No reason provided".to_string());
-
-    guild_id
-        .kick_with_reason(&ctx.serenity_context(), user.id, &reason)
-        .await?;
-    ctx.say(format!("👢 Kicked {} | Reason: {}", user.tag(), reason)).await?;
-    Ok(())
-}
 
 struct Handler;
 
@@ -591,21 +594,21 @@ async fn main() {
     let framework: poise::Framework<_, _> = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             commands: vec![
-                help(),
-                hello(),
-                ping(),
-                echo(),
-                ban(),
-                unban(),
-                say(),
-                kick(),
-                facts(),
-                roll(),
-                solve(),
-                about(),
-                joryu(),
-                fly(),
-                meme()
+                commands::help(),
+                commands::hello(),
+                commands::ping(),
+                commands::echo(),
+                commands::ban(),
+                commands::unban(),
+                commands::say(),
+                commands::kick(),
+                commands::facts(),
+                commands::roll(),
+                commands::solve(),
+                commands::about(),
+                commands::joryu(),
+                commands::fly(),
+                commands::meme()
             ],
             prefix_options: poise::PrefixFrameworkOptions {
                 prefix: Some("td!".into()),
