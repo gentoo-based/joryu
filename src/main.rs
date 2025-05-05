@@ -456,7 +456,7 @@ impl serenity::EventHandler for Handler {
         let activity = ActivityData::custom(format!("{}", message));
         let status = OnlineStatus::DoNotDisturb;
 
-        println!("Started shard: {}", context.shard_id);
+        // println!("Started shard: {}", context.shard_id);
         context.set_presence(Some(activity.clone()), status);
         if context.shard_id == serenity::ShardId(0) {
             loop {
