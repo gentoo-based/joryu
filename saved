@@ -1,0 +1,25 @@
+
+match attachment {
+    Some(attachment) => {
+        match message {
+            Some(message) => {
+                match messageid {
+                    Some(_) => {}
+                    None => {}
+                }
+                match user {
+                    Some(user) => {
+                        user.direct_message(ctx.http(), CreateMessage::default().content(message.clone()).add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
+                        return Ok(());
+                    }
+                    None => {}
+                }
+                ctx.channel_id().send_message(&ctx.serenity_context().http(), CreateMessage::default().content(message.clone()).add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
+                return Ok(());
+            }
+            None => {}
+        }
+        ctx.channel_id().send_message(&ctx.serenity_context().http(), CreateMessage::default().add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
+    } 
+    None => {}
+}

@@ -301,26 +301,44 @@ async fn echo(
     }
     match attachment {
         Some(attachment) => {
-            match message {
-                Some(message) => {
-                    match messageid {
-                        Some(_) => {}
-                        None => {}
-                    }
-                    match user {
-                        Some(user) => {
-                            user.direct_message(ctx.http(), CreateMessage::default().content(message.clone()).add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
-                            return Ok(());
+            match messageid {
+                Some(messageid) => {
+                    match message {
+                        Some(message) => {
+                            serenity::Message::reply_ping(&serenity::ChannelId::message(ctx.channel_id(), ctx.http(), messageid).await?, ctx.http(), message).await?;
+                            return  Ok(());
                         }
-                        None => {}
+                        None => {
+                        }
                     }
-                    ctx.channel_id().send_message(&ctx.serenity_context().http(), CreateMessage::default().content(message.clone()).add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
-                    return Ok(());
                 }
                 None => {}
             }
-            ctx.channel_id().send_message(&ctx.serenity_context().http(), CreateMessage::default().add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
-        } 
+            match user {
+                Some(user) => {
+                    match message {
+                        Some(message) => {
+                            user.direct_message(ctx.http(), CreateMessage::default().content(message.clone()).add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
+                            return  Ok(());
+                        }
+                        None => {
+                            user.direct_message(ctx.http(), CreateMessage::default().add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
+                            return  Ok(());
+                        }
+                    }
+                }
+                None => {}
+            }
+            match message {
+                Some(message) => {
+                    ctx.channel_id().send_message(&ctx.serenity_context().http(), CreateMessage::default().content(message.clone()).add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
+                }
+                None => {
+                    ctx.channel_id().send_message(&ctx.serenity_context().http(), CreateMessage::default().add_files(CreateAttachment::url(ctx.http(), &attachment.url).await)).await?;
+                }
+            }
+            return Ok(());
+        }
         None => {}
     }
     match message {
