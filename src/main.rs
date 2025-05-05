@@ -452,17 +452,23 @@ impl serenity::EventHandler for Handler {
             "Shinitai yatsu dake-- Kakatte koi!",
             "KIRYUUUUU!!!",
         ];
+
         let message = rand::seq::IndexedRandom::choose(MESSAGES, &mut rand::rng()).unwrap();
         let activity = ActivityData::custom(format!("{}", message));
         let status = OnlineStatus::DoNotDisturb;
 
-        // println!("Started shard: {}", context.shard_id);
         context.set_presence(Some(activity.clone()), status);
         if context.shard_id == serenity::ShardId(0) {
-            loop {
-                tokio::time::sleep(std::time::Duration::from_millis(50000)).await;
-                context.set_presence(Some(activity.clone()), status);
-            }
+            tokio::spawn(async move {
+                loop {
+                    let message = rand::seq::IndexedRandom::choose(MESSAGES, &mut rand::rng()).unwrap();
+                    let activity = ActivityData::custom(format!("{}", message));
+                    let status = OnlineStatus::DoNotDisturb;
+    
+                    context.set_presence(Some(activity.clone()), status);
+                    tokio::time::sleep(std::time::Duration::from_millis(50000)).await;
+                }
+            });
         }
     }
     async fn message(&self, context: poise::serenity_prelude::Context, message: poise::serenity_prelude::Message) {
