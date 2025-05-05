@@ -1,6 +1,6 @@
 use rand::Rng;
 // use meval;
-use poise::{serenity_prelude::{self as serenity, CacheHttp, ClientBuilder, CreateMessage, GatewayIntents, Mentionable, Ready}, CreateReply};
+use poise::serenity_prelude::{self as serenity, CacheHttp, ClientBuilder, CreateMessage, GatewayIntents, Mentionable, Ready};
 use std::time::{Duration, Instant};
 use regex::Regex;
 // use shuttle_runtime::SecretStore;
