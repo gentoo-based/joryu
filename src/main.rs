@@ -26,7 +26,7 @@ async fn fly(ctx: Context<'_>, user: serenity::Member) -> Result<(), Error> {
 use std::{fs, path::PathBuf};
 
 #[poise::command(slash_command, prefix_command)]
-async fn getmeme(
+async fn meme(
     ctx: Context<'_>,
     #[description = "The name of the meme (without extension)"] name: String,
 ) -> Result<(), Error> {
@@ -604,7 +604,8 @@ async fn main() {
                 solve(),
                 about(),
                 joryu(),
-                fly()
+                fly(),
+                meme()
             ],
             prefix_options: poise::PrefixFrameworkOptions {
                 prefix: Some("td!".into()),
