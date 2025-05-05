@@ -3,7 +3,6 @@ use rand::Rng;
 use poise::serenity_prelude::{self as serenity, CacheHttp, ClientBuilder, CreateMessage, GatewayIntents, Mentionable, Ready};
 use std::time::{Duration, Instant};
 use regex::Regex;
-use anyhow::Context as _;
 // use shuttle_runtime::SecretStore;
 // use shuttle_serenity::ShuttleSerenity;
 
@@ -265,6 +264,7 @@ async fn echo(
             message.clone(),
         )
         .await?;
+        return Ok(());
         /* Deprecated
                 else if let Some(_attachment) = attachment {
                     ctx.say("I'm sorry but attachments can't be used with replies. Use it seperately.").await?;
@@ -284,6 +284,7 @@ async fn sync(
     ctx: Context<'_>
 ) -> Result<(), Error> {
     poise::samples::register_application_commands(ctx, true).await?;
+    ctx.say("Properly registered the application commands globally.").await?;
     return Ok(());
 }
 
@@ -546,6 +547,6 @@ async fn main() {
         .expect("The client has unexpectedly crashed.");
 
     println!("Starting client...");
-    let _ = client.start_shards(32).await;
+    client.start_shards(32).await.expect("Sharding has failed.");
     return;
 }
