@@ -96,7 +96,7 @@ mod commands {
             .field(
                 "Hosting Service",
                 format!(
-                    "https://shuttle.dev"
+                    "Self-hosted on a server in `Canada`"
                 ),
                 false,
             )
