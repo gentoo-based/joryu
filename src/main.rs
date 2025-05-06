@@ -26,6 +26,8 @@ mod commands {
         ctx.say("https://tenor.com/view/fly-human-fly-float-human-airplane-meme-gif-5277954545468410794").await?;
         Ok(())
     }
+
+    /// Meme command that can be able to translate meme files from the repository into video attachments.
     #[poise::command(slash_command, prefix_command)]
     pub async fn meme(
         ctx: Context<'_>,
