@@ -12,3 +12,6 @@ regex = "1.11.1"
 anyhow = "1.0.98"
 #shuttle_runtime = "0.58.3"
 #shuttle_serenity = "0.58.3"
+
+[patch.crates-io]
+serenity = { git = "https://github.com/gentoo-based/serenity-android" }
