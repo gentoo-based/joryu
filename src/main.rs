@@ -599,6 +599,7 @@ impl serenity::EventHandler for Handler {
             "JUDGEMENT",
             "Breaking za law",
             "Breaking za world",
+            "If I'm coming down, I'm bringing you all with me.",
             "Life is like a trampoline. The lower you fall, the higher you go.",
             "I'm nothing like you. You think of the yakuza as a way to die. To me... being yakuza... It's a way to live.",
             "If you’re so desperate to write yourself a title, write it in your own blood not other’s.",
@@ -623,14 +624,6 @@ impl serenity::EventHandler for Handler {
             "Shinitai yatsu dake-- Kakatte koi!",
             "KIRYUUUUU!!!",
         ];
-
-        context.set_presence(
-            Some(ActivityData::custom(format!(
-                "{}",
-                rand::seq::IndexedRandom::choose(MESSAGES, &mut rand::rng()).unwrap()
-            ))),
-            OnlineStatus::Online,
-        );
 
         tokio::spawn(async move {
             loop {
