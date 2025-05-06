@@ -265,7 +265,7 @@ mod commands {
     #[poise::command(slash_command, prefix_command)]
     pub async fn ping(ctx: Context<'_>) -> Result<(), Error> {
         // 1. Measure message round-trip latency
-        let now = Instant::now();
+        let now = std::time::Instant::now();
         let reply = ctx.say("Pinging...").await?;
         let api_latency = now.elapsed();
 
