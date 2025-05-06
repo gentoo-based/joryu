@@ -583,24 +583,10 @@ mod commands {
         let getmessagebuilder = GetMessages::new().limit(amount.min(100));
         let messages = channel_id.messages(&ctx, getmessagebuilder).await?;
 
-        // Split into bulk-deletable (≤14 days) and individual deletions
-        let (recent, mut old): (Vec<_>, Vec<_>) = messages.into_iter().partition(|m| {
-            m.timestamp > serenity::all::Timestamp::from(Utc::now() - Duration::days(14))
-        });
+        ctx.channel_id().delete_messages(&ctx, &messages).await?;
 
-        // Bulk delete recent messages in chunks of 100
-        for chunk in recent.chunks(100) {
-            channel_id.delete_messages(&ctx, chunk).await?;
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await; // Rate limit handling
-        }
-
-        // Delete older messages individually
-        for msg in old.drain(..) {
-            msg.delete(&ctx).await?;
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        }
-
-        ctx.say(format!("Deleted {} messages", amount)).await?;
+        ctx.say(format!("Deleted {} messages.", messages.len()))
+            .await?;
         Ok(())
     }
 }
