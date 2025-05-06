@@ -507,7 +507,7 @@ mod commands {
         ];
 
         let fact = rand::seq::IndexedRandom::choose(FACTS, &mut rand::rng()).unwrap();
-        ctx.say(format!("📚 **Did you know?**\n{}", fact)).await?;
+        ctx.say(format!("**Did you know?**\n{}", fact)).await?;
         Ok(())
     }
 
@@ -525,8 +525,7 @@ mod commands {
         }
 
         let result = rand::rng().random_range(min..=max);
-        ctx.say(format!("🎲 Your random number: {}", result))
-            .await?;
+        ctx.say(format!("Your random number: {}", result)).await?;
         Ok(())
     }
 
@@ -543,7 +542,7 @@ mod commands {
         guild_id
             .ban_with_reason(&ctx.serenity_context(), user.id, 0, &reason)
             .await?;
-        ctx.say(format!("🔨 Banned {} | Reason: {}", user.tag(), reason))
+        ctx.say(format!("Banned {} | Reason: {}", user.tag(), reason))
             .await?;
         Ok(())
     }
@@ -556,7 +555,7 @@ mod commands {
     ) -> Result<(), Error> {
         let guild_id = ctx.guild_id().expect("Must be used in guild");
         guild_id.unban(&ctx.serenity_context(), user.id).await?;
-        ctx.say(format!("✅ Unbanned {}", user.tag())).await?;
+        ctx.say(format!("Unbanned {}", user.tag())).await?;
         Ok(())
     }
 
@@ -573,7 +572,7 @@ mod commands {
         guild_id
             .kick_with_reason(&ctx.serenity_context(), user.id, &reason)
             .await?;
-        ctx.say(format!("👢 Kicked {} | Reason: {}", user.tag(), reason))
+        ctx.say(format!(" Kicked {} | Reason: {}", user.tag(), reason))
             .await?;
         Ok(())
     }
