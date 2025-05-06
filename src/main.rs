@@ -96,7 +96,7 @@ mod commands {
             .field(
                 "Hosting Service",
                 format!(
-                    "Self-hosted on a server in `Canada`"
+                    "Currently self-hosted 24/7"
                 ),
                 false,
             )
@@ -167,11 +167,6 @@ mod commands {
             .field(
                 format!("{prefix}unban <user> <reason>"),
                 "Unban a user with the specified reason.",
-                false,
-            )
-            .field(
-                format!("{prefix}timeout <user> <time> <reason> "),
-                "Time a user out with the specified reason and the specified time.",
                 false,
             )
             .field(
