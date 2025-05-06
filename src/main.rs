@@ -1,6 +1,5 @@
 use rand::Rng;
 // use meval;
-use chrono::{Duration, Utc};
 use poise::serenity_prelude::{
     self as serenity, CacheHttp, ClientBuilder, CreateAttachment, CreateMessage, GatewayIntents,
     Mentionable, Ready,

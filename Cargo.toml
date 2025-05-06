@@ -10,7 +10,6 @@ tokio = { version = "1.44.2", features = ["rt-multi-thread"] }
 rand = "0.9.1"
 regex = "1.11.1"
 anyhow = "1.0.98"
-chrono = "0.4.41"
 #shuttle_runtime = "0.58.3"
 #shuttle_serenity = "0.58.3"
 
