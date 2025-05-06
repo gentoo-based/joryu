@@ -625,20 +625,18 @@ impl serenity::EventHandler for Handler {
             OnlineStatus::Online,
         );
 
-        if context.shard_id == serenity::ShardId(16) {
-            tokio::spawn(async move {
-                loop {
-                    context.set_presence(
-                        Some(ActivityData::custom(format!(
-                            "{}",
-                            rand::seq::IndexedRandom::choose(MESSAGES, &mut rand::rng()).unwrap()
-                        ))),
-                        OnlineStatus::Online,
-                    );
-                    tokio::time::sleep(std::time::Duration::from_millis(50000)).await;
-                }
-            });
-        }
+        tokio::spawn(async move {
+            loop {
+                context.set_presence(
+                    Some(ActivityData::custom(format!(
+                        "{}",
+                        rand::seq::IndexedRandom::choose(MESSAGES, &mut rand::rng()).unwrap()
+                    ))),
+                    OnlineStatus::Online,
+                );
+                tokio::time::sleep(std::time::Duration::from_millis(50000)).await;
+            }
+        });
     }
     async fn message(
         &self,
