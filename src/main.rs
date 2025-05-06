@@ -375,7 +375,7 @@ mod commands {
                             .await?;
                             return Ok(());
                         }
-                        None => {
+                        _none => {
                             user.direct_message(
                                 ctx.http(),
                                 CreateMessage::default().add_files(
@@ -386,7 +386,7 @@ mod commands {
                             return Ok(());
                         }
                     },
-                    None => {}
+                    _none => {}
                 }
                 match message {
                     Some(message) => {
@@ -399,7 +399,7 @@ mod commands {
                             )
                             .await?;
                     }
-                    none => {
+                    _none => {
                         ctx.channel_id()
                             .send_message(
                                 &ctx.serenity_context().http(),
@@ -412,7 +412,7 @@ mod commands {
                 }
                 return Ok(());
             }
-            none => {}
+            _none => {}
         }
         match message {
             Some(message) => {
@@ -427,7 +427,7 @@ mod commands {
                         .await?;
                         return Ok(());
                     }
-                    none => {}
+                    _none => {}
                 }
                 match user {
                     Some(user) => {
@@ -438,14 +438,14 @@ mod commands {
                         .await?;
                         return Ok(());
                     }
-                    none => {}
+                    _none => {}
                 }
                 ctx.channel_id()
                     .say(&ctx.serenity_context().http(), message.clone())
                     .await?;
                 return Ok(());
             }
-            none => {}
+            _none => {}
         }
         return Ok(());
     }
