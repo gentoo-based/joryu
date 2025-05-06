@@ -1,5 +1,6 @@
 use rand::Rng;
 // use meval;
+use ::serenity::FutureExt;
 use poise::serenity_prelude::{
     self as serenity, CacheHttp, ClientBuilder, CreateAttachment, CreateMessage, GatewayIntents,
     Mentionable, Ready,
@@ -10,6 +11,7 @@ use std::{fs, path::PathBuf};
 struct Data {
     pub start_time: Instant,
 } // User data, which is stored and accessible in all command invocations
+const SHARDS: u32 = 32;
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
@@ -625,6 +627,9 @@ impl serenity::EventHandler for Handler {
             "KIRYUUUUU!!!",
         ];
 
+        if context.shard_id == serenity::ShardId(SHARDS - 1) {
+            println!("Client has started.");
+        }
         tokio::spawn(async move {
             loop {
                 context.set_presence(
@@ -722,5 +727,8 @@ async fn main() {
         .expect("The client has unexpectedly crashed.");
 
     println!("Starting client...");
-    client.start_shards(32).await.expect("Sharding has failed")
+    client
+        .start_shards(SHARDS)
+        .await
+        .expect("Sharding has failed")
 }
