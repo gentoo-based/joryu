@@ -718,6 +718,8 @@ async fn main() {
                 commands::joryu(),
                 commands::fly(),
                 commands::meme(),
+                commands::purge(),
+                commands::sync(),
             ],
             prefix_options: poise::PrefixFrameworkOptions {
                 prefix: Some("td!".into()),
