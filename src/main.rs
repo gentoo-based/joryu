@@ -1,5 +1,6 @@
 use rand::Rng;
 // use meval;
+use chrono::{Duration, Utc};
 use poise::serenity_prelude::{
     self as serenity, CacheHttp, ClientBuilder, CreateAttachment, CreateMessage, GatewayIntents,
     Mentionable, Ready,
@@ -15,6 +16,7 @@ type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
 mod commands {
+    use ::serenity::all::GetMessages;
     use poise::CreateReply;
 
     use super::*;
@@ -565,6 +567,41 @@ mod commands {
             .await?;
         ctx.say(format!(" Kicked {} | Reason: {}", user.tag(), reason))
             .await?;
+        Ok(())
+    }
+
+    /// Deletes a specified amount of messages.
+    #[poise::command(
+        slash_command,
+        prefix_command,
+        required_permissions = "MANAGE_MESSAGES"
+    )]
+    pub async fn purge(
+        ctx: Context<'_>,
+        #[description = "Amount of messages to delete/clean."] amount: u8,
+    ) -> Result<(), Error> {
+        let channel_id = ctx.channel_id();
+        let getmessagebuilder = GetMessages::new().limit(amount.min(100));
+        let messages = channel_id.messages(&ctx, getmessagebuilder).await?;
+
+        // Split into bulk-deletable (≤14 days) and individual deletions
+        let (recent, mut old): (Vec<_>, Vec<_>) = messages
+            .into_iter()
+            .partition(|m| m.timestamp > Utc::now() - Duration::Days(14));
+
+        // Bulk delete recent messages in chunks of 100
+        for chunk in recent.chunks(100) {
+            channel_id.delete_messages(&ctx, chunk).await?;
+            tokio::time::sleep(Duration::from_secs(1)).await; // Rate limit handling
+        }
+
+        // Delete older messages individually
+        for msg in old.drain(..) {
+            msg.delete(&ctx).await?;
+            tokio::time::sleep(Duration::from_secs(1)).await;
+        }
+
+        ctx.say(format!("Deleted {} messages", amount)).await?;
         Ok(())
     }
 }
