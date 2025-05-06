@@ -1,6 +1,5 @@
 use rand::Rng;
 // use meval;
-use ::serenity::FutureExt;
 use poise::serenity_prelude::{
     self as serenity, CacheHttp, ClientBuilder, CreateAttachment, CreateMessage, GatewayIntents,
     Mentionable, Ready,
@@ -16,6 +15,8 @@ type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
 mod commands {
+    use poise::CreateReply;
+
     use super::*;
 
     /// Funny command that lets users fly.
@@ -53,18 +54,13 @@ mod commands {
         match found_meme {
             Some(meme_path) => {
                 ctx.send(
-                    poise::CreateReply::default()
-                        .content("Here is your meme, sir.")
-                        .ephemeral(true),
+                    CreateReply::default().attachment(
+                        serenity::CreateAttachment::path(meme_path)
+                            .await
+                            .expect("Attachment has failed to send."),
+                    ),
                 )
                 .await?;
-                ctx.channel_id()
-                    .send_files(
-                        &ctx.serenity_context().http,
-                        serenity::CreateAttachment::path(meme_path).await,
-                        CreateMessage::default(),
-                    )
-                    .await?;
             }
             _none => {
                 ctx.say(format!(
