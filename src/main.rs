@@ -6,10 +6,9 @@ use poise::serenity_prelude::{
     Mentionable, Ready,
 };
 use regex::Regex;
-use std::time::{Duration, Instant};
 use std::{fs, path::PathBuf};
 struct Data {
-    pub start_time: Instant,
+    pub start_time: std::time::Instant,
 } // User data, which is stored and accessible in all command invocations
 const SHARDS: u32 = 32;
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -295,7 +294,7 @@ mod commands {
     }
 
     // Helper function to format Duration as H:M:S
-    fn format_durationu(d: Duration) -> String {
+    fn format_durationu(d: std::time::Duration) -> String {
         let secs = d.as_secs();
         let hours = secs / 3600;
         let mins = (secs % 3600) / 60;
@@ -585,20 +584,20 @@ mod commands {
         let messages = channel_id.messages(&ctx, getmessagebuilder).await?;
 
         // Split into bulk-deletable (≤14 days) and individual deletions
-        let (recent, mut old): (Vec<_>, Vec<_>) = messages
-            .into_iter()
-            .partition(|m| m.timestamp > Utc::now() - Duration::Days(14));
+        let (recent, mut old): (Vec<_>, Vec<_>) = messages.into_iter().partition(|m| {
+            m.timestamp > serenity::all::Timestamp::from(Utc::now() - Duration::days(14))
+        });
 
         // Bulk delete recent messages in chunks of 100
         for chunk in recent.chunks(100) {
             channel_id.delete_messages(&ctx, chunk).await?;
-            tokio::time::sleep(Duration::from_secs(1)).await; // Rate limit handling
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await; // Rate limit handling
         }
 
         // Delete older messages individually
         for msg in old.drain(..) {
             msg.delete(&ctx).await?;
-            tokio::time::sleep(Duration::from_secs(1)).await;
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         }
 
         ctx.say(format!("Deleted {} messages", amount)).await?;
@@ -741,7 +740,7 @@ async fn main() {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 println!("Registered commands.");
                 Ok(Data {
-                    start_time: Instant::now(),
+                    start_time: std::time::Instant::now(),
                 })
             })
         })
