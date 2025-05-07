@@ -10,6 +10,8 @@ tokio = { version = "1.44.2", features = ["rt-multi-thread"] }
 rand = "0.9.1"
 regex = "1.11.1"
 anyhow = "1.0.98"
+sqlx = { version = "0.8.5", features = ["sqlite"] }
+rustsqlite = "=0.32.1"
 #shuttle_runtime = "0.58.3"
 #shuttle_serenity = "0.58.3"
 

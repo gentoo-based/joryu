@@ -5,14 +5,106 @@ use poise::serenity_prelude::{
     Mentionable, Ready,
 };
 use regex::Regex;
+use sqlx::Pool;
+use sqlx::sqlite::SqlitePool;
 use std::{fs, path::PathBuf};
 struct Data {
+    pub db_pool: Pool<sqlx::Sqlite>,
     pub start_time: std::time::Instant,
 } // User data, which is stored and accessible in all command invocations
 const SHARDS: u32 = 32;
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
+// This is the function that Poise will call to get the prefix for a guild
+async fn dynamic_prefix_resolver(ctx: Context<'_>) -> Result<Option<String>, Error> {
+    // Get the guild ID from the context. If not in a guild (e.g., a DM),
+    // return None to signify using the default prefix.
+    let guild_id = match ctx.guild_id() {
+        Some(id) => id,
+        _none => return Ok("td!"), // Use default prefix in DMs
+    };
+
+    // Query the database for the prefix associated with this guild ID
+    // We use query_as! for type-safe fetching.
+    // SQLite uses '?' for placeholders
+    let prefix_row = sqlx::query_as!(
+        PrefixRow,
+        "SELECT prefix FROM guild_prefixes WHERE guild_id = ?", // Use ? for placeholder
+        guild_id.get() as i64 // Cast Discord's Uid to i64 for database storage
+    )
+    .fetch_optional(&ctx.data().db_pool) // fetch_optional returns Option<Row>
+    .await
+    .map_err(|e| {
+        // Log the error but don't crash the bot.
+        // In a real bot, you might want more sophisticated error handling.
+        eprintln!(
+            "Database error fetching prefix for guild {}: {}",
+            guild_id, e
+        );
+        // Return the error to the framework to be handled by the on_error hook
+        e
+    })?;
+
+    // If a prefix was found, return it. Otherwise, return None to use the default.
+    Ok(prefix_row.map(|row| row.prefix))
+}
+
+// Helper struct to map the query result
+struct PrefixRow {
+    prefix: String,
+}
+
+/// Sets the command prefix for this guild.
+/// Requires Administrator permissions.
+#[poise::command(guild_only, prefix_command)] // This command can only be used in a guild
+async fn set_prefix(
+    ctx: Context<'_>,
+    #[description = "The new prefix to use (max 10 characters)"] new_prefix: String,
+) -> Result<(), Error> {
+    // Ensure the command is run in a guild (guild_only attribute already helps, but good practice)
+    let guild_id = ctx
+        .guild_id()
+        .ok_or("This command can only be used in a guild.")?;
+
+    // Check if the user has Administrator permissions
+    let member = ctx
+        .author_member()
+        .await
+        .ok_or("Could not retrieve guild member.")?;
+    let permissions = member
+        .permissions(ctx.cache())
+        .map_err(|_| "Could not retrieve member permissions.")?;
+
+    if !permissions.administrator() {
+        return Err("You need Administrator permissions to use this command.".into());
+    }
+
+    // Basic validation for the new prefix length
+    if new_prefix.len() > 10 {
+        return Err("The prefix cannot be longer than 10 characters.".into());
+    }
+
+    // Use INSERT ... ON CONFLICT syntax for SQLite (requires SQLite 3.24.0+)
+    // Or you could use INSERT OR REPLACE INTO ... for simpler cases
+    sqlx::query!(
+        "INSERT INTO guild_prefixes (guild_id, prefix) VALUES (?, ?)
+         ON CONFLICT (guild_id) DO UPDATE SET prefix = excluded.prefix", // Use ? for placeholders
+        guild_id.get() as i64, // Cast Discord Uid to i64
+        new_prefix
+    )
+    .execute(&ctx.data().db_pool)
+    .await?; // Execute the query
+
+    // Respond to the user confirming the prefix change
+    ctx.say(format!(
+        "Command prefix for this guild has been set to `{}`.",
+        new_prefix
+    ))
+    .await?;
+
+    Ok(())
+}
 mod commands {
     use ::serenity::all::GetMessages;
     use poise::CreateReply;
@@ -24,6 +116,15 @@ mod commands {
     pub async fn fly(ctx: Context<'_>, user: serenity::Member) -> Result<(), Error> {
         ctx.say(format!("Fly high {}", user.mention())).await?;
         ctx.say("https://tenor.com/view/fly-human-fly-float-human-airplane-meme-gif-5277954545468410794").await?;
+        Ok(())
+    }
+
+    /// Prefix command.
+    #[poise::command(slash_command, prefix_command)]
+    pub async fn writeprefix(
+        ctx: Context<'_>,
+        #[description = "The prefix you would like for the server."] name: String,
+    ) -> Result<(), Error> {
         Ok(())
     }
 
@@ -733,11 +834,31 @@ impl serenity::EventHandler for Handler {
 #[tokio::main]
 async fn main() {
     // Get the discord token set in `Secrets.toml`
-    let discord_token = std::env::var("DISCORD_TOKEN").expect("'DISCORD_TOKEN' was not found");
+
+    // Load environment variables from a .env file
+    dotenv().ok();
+
+    // Get the Discord bot token and database URL from environment variables
+    let token = env::var("DISCORD_TOKEN").expect("Expected a DISCORD_TOKEN in the environment");
+    // For SQLite, the DATABASE_URL is typically a file path, e.g., "sqlite:database.db"
+    let database_url =
+        env::var("DATABASE_URL").expect("Expected a DATABASE_URL in the environment");
+
+    // Set up the SQLx database connection pool for SQLite
+    let pool = SqlitePool::connect(&database_url).await?; // Use SqlitePool
+
+    // Run database migrations (optional but recommended for managing schema changes)
+    // Ensure you have a 'migrations' directory with your SQL migration files.
+    // You'll need the sqlx-cli installed (`cargo install sqlx-cli`).
+    // To create a migration: `sqlx migrate add create_guild_prefixes_table`
+    // To run migrations: `sqlx migrate run`
+    let migrator = Migrator::new(Path::new("./migrations")).await?;
+    migrator.run(&pool).await?;
 
     let framework: poise::Framework<_, _> = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             commands: vec![
+                set_prefix(),
                 commands::help(),
                 commands::hello(),
                 commands::ping(),
@@ -757,9 +878,9 @@ async fn main() {
                 commands::sync(),
             ],
             prefix_options: poise::PrefixFrameworkOptions {
-                prefix: Some("td!".into()),
                 case_insensitive_commands: false,
                 mention_as_prefix: true,
+                dynamic_prefix: Some(|ctx| Box::pin(dynamic_prefix_resolver(ctx))), // Use our custom resolver
                 /*
                 dynamic_prefix: Some(
                     |ctx| {
@@ -775,9 +896,11 @@ async fn main() {
             Box::pin(async move {
                 println!("Registering commands...");
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
+                let dbpool = SqlitePool::connect(&database_url).await?; // Use SqlitePool
                 println!("Registered commands.");
                 Ok(Data {
                     start_time: std::time::Instant::now(),
+                    db_pool: dbpool,
                 })
             })
         })
