@@ -1,5 +1,6 @@
 use rand::Rng;
 // use meval;
+use dotenv::dotenv;
 use poise::serenity_prelude::{
     self as serenity, CacheHttp, ClientBuilder, CreateAttachment, CreateMessage, GatewayIntents,
     Mentionable, Ready,
@@ -7,7 +8,10 @@ use poise::serenity_prelude::{
 use regex::Regex;
 use sqlx::Pool;
 use sqlx::sqlite::SqlitePool;
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 struct Data {
     pub db_pool: Pool<sqlx::Sqlite>,
     pub start_time: std::time::Instant,
@@ -17,12 +21,14 @@ type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
 // This is the function that Poise will call to get the prefix for a guild
-async fn dynamic_prefix_resolver(ctx: Context<'_>) -> Result<Option<String>, Error> {
+async fn dynamic_prefix_resolver(
+    ctx: poise::PartialContext<'_, Data, Error>,
+) -> Result<Option<String>, Error> {
     // Get the guild ID from the context. If not in a guild (e.g., a DM),
     // return None to signify using the default prefix.
-    let guild_id = match ctx.guild_id() {
+    let guild_id = match ctx.guild_id {
         Some(id) => id,
-        _none => return Ok("td!"), // Use default prefix in DMs
+        _none => return Ok(None), // Use default prefix in DMs
     };
 
     // Query the database for the prefix associated with this guild ID
@@ -33,7 +39,7 @@ async fn dynamic_prefix_resolver(ctx: Context<'_>) -> Result<Option<String>, Err
         "SELECT prefix FROM guild_prefixes WHERE guild_id = ?", // Use ? for placeholder
         guild_id.get() as i64 // Cast Discord's Uid to i64 for database storage
     )
-    .fetch_optional(&ctx.data().db_pool) // fetch_optional returns Option<Row>
+    .fetch_optional(&ctx.data.db_pool) // fetch_optional returns Option<Row>
     .await
     .map_err(|e| {
         // Log the error but don't crash the bot.
@@ -116,15 +122,6 @@ mod commands {
     pub async fn fly(ctx: Context<'_>, user: serenity::Member) -> Result<(), Error> {
         ctx.say(format!("Fly high {}", user.mention())).await?;
         ctx.say("https://tenor.com/view/fly-human-fly-float-human-airplane-meme-gif-5277954545468410794").await?;
-        Ok(())
-    }
-
-    /// Prefix command.
-    #[poise::command(slash_command, prefix_command)]
-    pub async fn writeprefix(
-        ctx: Context<'_>,
-        #[description = "The prefix you would like for the server."] name: String,
-    ) -> Result<(), Error> {
         Ok(())
     }
 
@@ -834,24 +831,23 @@ impl serenity::EventHandler for Handler {
 #[tokio::main]
 async fn main() {
     // Get the discord token set in `Secrets.toml`
-
-    // Load environment variables from a .env file
+    // Get the Discord bot token and database URL from environment variables
     dotenv().ok();
 
-    // Get the Discord bot token and database URL from environment variables
-    let token = env::var("DISCORD_TOKEN").expect("Expected a DISCORD_TOKEN in the environment");
+    let token =
+        std::env::var("DISCORD_TOKEN").expect("Expected a DISCORD_TOKEN in the environment");
     // For SQLite, the DATABASE_URL is typically a file path, e.g., "sqlite:database.db"
-    let database_url = "sqlite:bot.db";
+    let database_url = std::env::var("DATABASE_URL").expect("No database url found.");
     // Set up the SQLx database connection pool for SQLite
-    let pool = SqlitePool::connect(&database_url).await?; // Use SqlitePool
+    let pool = SqlitePool::connect(&database_url).await; // Use SqlitePool
 
     // Run database migrations (optional but recommended for managing schema changes)
     // Ensure you have a 'migrations' directory with your SQL migration files.
     // You'll need the sqlx-cli installed (`cargo install sqlx-cli`).
     // To create a migration: `sqlx migrate add create_guild_prefixes_table`
     // To run migrations: `sqlx migrate run`
-    let migrator = Migrator::new(Path::new("./migrations")).await?;
-    migrator.run(&pool).await?;
+    let migrator = sqlx::migrate::Migrator::new(Path::new("./migrations")).await;
+    migrator.unwrap().run(&pool.unwrap());
 
     let framework: poise::Framework<_, _> = poise::Framework::builder()
         .options(poise::FrameworkOptions {
@@ -876,6 +872,7 @@ async fn main() {
                 commands::sync(),
             ],
             prefix_options: poise::PrefixFrameworkOptions {
+                prefix: Some("td!".into()),
                 case_insensitive_commands: false,
                 mention_as_prefix: true,
                 dynamic_prefix: Some(|ctx| Box::pin(dynamic_prefix_resolver(ctx))), // Use our custom resolver
@@ -904,7 +901,7 @@ async fn main() {
         })
         .build();
 
-    let mut client = ClientBuilder::new(discord_token, GatewayIntents::all())
+    let mut client = ClientBuilder::new(token, GatewayIntents::all())
         .event_handler(Handler)
         .framework(framework)
         .await

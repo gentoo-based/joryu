@@ -11,7 +11,8 @@ rand = "0.9.1"
 regex = "1.11.1"
 anyhow = "1.0.98"
 sqlx = { version = "0.8.5", features = ["sqlite"] }
-rustsqlite = "=0.32.1"
+rusqlite = "=0.32.1"
+dotenv = "0.15.0"
 #shuttle_runtime = "0.58.3"
 #shuttle_serenity = "0.58.3"
 
