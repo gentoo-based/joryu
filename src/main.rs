@@ -6,6 +6,7 @@ use poise::serenity_prelude::{
 };
 use regex::Regex;
 use std::{fs, path::PathBuf};
+use sysinfo::System;
 struct Data {
     pub start_time: std::time::Instant,
 } // User data, which is stored and accessible in all command invocations
@@ -14,7 +15,7 @@ type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
 mod commands {
-    use ::serenity::all::GetMessages;
+    use ::serenity::all::{CreateEmbed, CreateEmbedFooter, GetMessages};
     use poise::CreateReply;
 
     use super::*;
@@ -285,20 +286,33 @@ mod commands {
         // 3. Calculate uptime
         let uptime = ctx.data().start_time.elapsed();
 
-        // 4. Format response
-        let response = format!(
-            "Pong!\n\
-            • Shard ID: {}\n\
-            • API latency: {} ms\n\
-            • Uptime: {}",
-            shard,
-            api_latency.as_millis(),
-            format_durationu(uptime)
-        );
+        let mut sys = System::new_all();
+        sys.refresh_all();
 
+        let total_memory = sys.total_memory() / 1024; // MB
+        let used_memory = sys.used_memory() / 1024; // MB
+        let cpu_usage = sys.global_cpu_usage();
+
+        let embed = CreateEmbed::new()
+            .footer(
+                CreateEmbedFooter::new(format!("Requested by {}", ctx.author().name))
+                    .icon_url(ctx.author().avatar_url().unwrap()),
+            )
+            .title(format!("🏓 Pong!"))
+            .description("Here are some news about the bot.")
+            .field("Shard ID", shard.to_string(), false)
+            .field("Latency", api_latency.as_millis().to_string(), false)
+            .field("Uptime", format_durationu(uptime), false)
+            .field("RESOURCES:", "", true)
+            .field(
+                "Memory Usage",
+                format!("{}/{}", total_memory, used_memory),
+                false,
+            )
+            .field("CPU Usage", cpu_usage.to_string(), false);
         // 5. Edit the original reply with result.
         reply
-            .edit(ctx, poise::CreateReply::default().content(response))
+            .edit(ctx, poise::CreateReply::default().embed(embed))
             .await?;
         Ok(())
     }
