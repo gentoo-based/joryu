@@ -841,7 +841,7 @@ async fn main() {
     // Get the Discord bot token and database URL from environment variables
     let token = env::var("DISCORD_TOKEN").expect("Expected a DISCORD_TOKEN in the environment");
     // For SQLite, the DATABASE_URL is typically a file path, e.g., "sqlite:database.db"
-    let database_url = "sqlite:bot.db"
+    let database_url = "sqlite:bot.db";
     // Set up the SQLx database connection pool for SQLite
     let pool = SqlitePool::connect(&database_url).await?; // Use SqlitePool
 
