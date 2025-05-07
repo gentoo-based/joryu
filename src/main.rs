@@ -56,19 +56,27 @@ mod commands {
         match found_meme {
             Some(meme_path) => {
                 ctx.send(
-                    CreateReply::default().attachment(
-                        serenity::CreateAttachment::path(meme_path)
-                            .await
-                            .expect("Attachment has failed to send."),
-                    ),
+                    CreateReply::default()
+                        .content("Here's your meme sir.")
+                        .ephemeral(true),
                 )
                 .await?;
+                ctx.channel_id()
+                    .send_message(
+                        ctx.http(),
+                        CreateMessage::default().add_file(
+                            serenity::CreateAttachment::path(meme_path)
+                                .await
+                                .expect("Attachment has failed to send."),
+                        ),
+                    )
+                    .await?;
             }
             _none => {
-                ctx.say(format!(
+                ctx.send(CreateReply::default().content(format!(
                     "Hush now... the meme named '{}' seems to elude us in the `./memes` folder.",
                     name
-                ))
+                )).ephemeral(true))
                 .await?;
             }
         }
@@ -94,7 +102,7 @@ mod commands {
             .field(
                 "Hosting Service",
                 format!(
-                    "Currently self-hosted 24/7"
+                    "Self-hosted"
                 ),
                 false,
             )
@@ -181,6 +189,7 @@ mod commands {
 
             poise::CreateReply::default()
                 .embed(embed1.clone())
+                .ephemeral(true)
                 .components(vec![components])
         };
 
@@ -253,7 +262,7 @@ mod commands {
     }
 
     /// Calculate simple math expressions.
-    #[poise::command(slash_command, prefix_command)]
+    #[poise::command(slash_command, prefix_command, aliases("calc", "calculator"))]
     pub async fn solve(ctx: Context<'_>, expr: String) -> Result<(), Error> {
         match calc_inner(&expr) {
             Some(result) => ctx.say(format!("Result: {}", result)).await?,
@@ -574,20 +583,59 @@ mod commands {
     #[poise::command(
         slash_command,
         prefix_command,
-        required_permissions = "MANAGE_MESSAGES"
+        required_permissions = "MANAGE_MESSAGES",
+        aliases("clean", "clear", "bulkdel")
     )]
     pub async fn purge(
         ctx: Context<'_>,
-        #[description = "Amount of messages to delete/clean."] amount: u8,
+        #[description = "Target user"] user: serenity::User,
+        #[description = "Number of messages to delete"] mut amount: u8,
     ) -> Result<(), Error> {
         let channel_id = ctx.channel_id();
-        let getmessagebuilder = GetMessages::new().limit(amount.min(100));
-        let messages = channel_id.messages(&ctx, getmessagebuilder).await?;
+        let mut total_deleted = 0;
+        let mut last_message_id = ctx.id();
 
-        ctx.channel_id().delete_messages(&ctx, &messages).await?;
+        while amount > 0 {
+            // Fetch up to 100 messages before last_message_id
+            let fetch_limit = std::cmp::min(100, amount);
+            let retriever = GetMessages::new()
+                .limit(fetch_limit)
+                .before(last_message_id);
+            let messages = channel_id.messages(ctx.http(), retriever).await?;
 
-        ctx.say(format!("Deleted {} messages.", messages.len()))
-            .await?;
+            // Filter messages from the target user
+            let filtered_messages: Vec<_> = messages
+                .iter()
+                .filter(|msg| msg.author.id == user.id)
+                .map(|msg| msg.id)
+                .collect();
+
+            if filtered_messages.is_empty() {
+                break; // No more messages from user found
+            }
+
+            // Delete filtered messages in bulk
+            channel_id.delete_messages(&ctx, &filtered_messages).await?;
+
+            let deleted_count = filtered_messages.len() as u8;
+            total_deleted += deleted_count;
+            amount = amount.saturating_sub(deleted_count);
+
+            // Update last_message_id for pagination
+            last_message_id = messages
+                .last()
+                .map(|msg| u64::from(msg.id))
+                .unwrap_or(last_message_id);
+        }
+
+        ctx.say(format!(
+            "Deleted {} messages from {}",
+            total_deleted, user.name
+        ))
+        .await?
+        .delete(ctx)
+        .await?;
+
         Ok(())
     }
 }
