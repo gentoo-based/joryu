@@ -792,10 +792,11 @@ impl serenity::EventHandler for Handler {
         tokio::spawn(async move {
             loop {
                 context.set_presence(
-                    Some(ActivityData::custom(format!(
+                    Some(ActivityData::streaming(format!(
                         "{}",
                         rand::seq::IndexedRandom::choose(MESSAGES, &mut rand::rng()).unwrap()
-                    ))),
+                    ), "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.1yxQu51qA2RJpg2_YVGGzwHaEL%26pid%3DApi&f=1&ipt=b6982f8e16a3374e81dd738f88cb2f421fa2c5116c831a9c520667af3396c88f&ipo=images"
+                    ).expect("Streaming URL passed has failed parsing.")),
                     OnlineStatus::Online,
                 );
                 tokio::time::sleep(std::time::Duration::from_millis(50000)).await;
