@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO guild_prefixes (guild_id, prefix) VALUES (?, ?)\n         ON CONFLICT (guild_id) DO UPDATE SET prefix = excluded.prefix",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "680ad3a07791cd3a4f1c9800180283f19d42fb3163f55772a1f5045c528056bd"
+}

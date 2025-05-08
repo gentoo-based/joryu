@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "CREATE TABLE IF NOT EXISTS guild_prefixes (\n                guild_id INTEGER PRIMARY KEY,\n                prefix VARCHAR(10) NOT NULL DEFAULT '!'\n            )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "14b9c2d243553d1a0bde28a49a3da6d605c6a38dfdbe68e929505e96af47bcbc"
+}

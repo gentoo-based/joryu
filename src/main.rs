@@ -8,10 +8,8 @@ use poise::serenity_prelude::{
 use regex::Regex;
 use sqlx::Pool;
 use sqlx::sqlite::SqlitePool;
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, path::PathBuf};
+
 struct Data {
     pub db_pool: Pool<sqlx::Sqlite>,
     pub start_time: std::time::Instant,
@@ -28,16 +26,29 @@ async fn dynamic_prefix_resolver(
     // return None to signify using the default prefix.
     let guild_id = match ctx.guild_id {
         Some(id) => id,
-        _none => return Ok(None), // Use default prefix in DMs
+        _none => return Ok(Some("td!".to_string())), // Use default prefix in DMs
     };
 
+    // Gotta make it first dawg
     // Query the database for the prefix associated with this guild ID
     // We use query_as! for type-safe fetching.
     // SQLite uses '?' for placeholders
+
+    // --- Inline Database Table Creation ---
+    sqlx::query!(
+        "CREATE TABLE IF NOT EXISTS guild_prefixes (
+                guild_id INTEGER PRIMARY KEY,
+                prefix VARCHAR(10) NOT NULL DEFAULT 'td!'
+            )"
+    )
+    .execute(&ctx.data.db_pool)
+    .await
+    .expect("ERROR Creating Database");
+    let guild_id = guild_id.get() as i64;
     let prefix_row = sqlx::query_as!(
         PrefixRow,
         "SELECT prefix FROM guild_prefixes WHERE guild_id = ?", // Use ? for placeholder
-        guild_id.get() as i64 // Cast Discord's Uid to i64 for database storage
+        guild_id // Cast Discord's Uid to i64 for database storage
     )
     .fetch_optional(&ctx.data.db_pool) // fetch_optional returns Option<Row>
     .await
@@ -61,9 +72,9 @@ struct PrefixRow {
     prefix: String,
 }
 
-/// Sets the command prefix for this guild.
+/// Sets the command prefix forguild.
 /// Requires Administrator permissions.
-#[poise::command(guild_only, prefix_command)] // This command can only be used in a guild
+#[poise::command(guild_only, prefix_command, required_permissions = "ADMINISTRATOR")] // This command can only be used in a guild
 async fn set_prefix(
     ctx: Context<'_>,
     #[description = "The new prefix to use (max 10 characters)"] new_prefix: String,
@@ -74,18 +85,6 @@ async fn set_prefix(
         .ok_or("This command can only be used in a guild.")?;
 
     // Check if the user has Administrator permissions
-    let member = ctx
-        .author_member()
-        .await
-        .ok_or("Could not retrieve guild member.")?;
-    let permissions = member
-        .permissions(ctx.cache())
-        .map_err(|_| "Could not retrieve member permissions.")?;
-
-    if !permissions.administrator() {
-        return Err("You need Administrator permissions to use this command.".into());
-    }
-
     // Basic validation for the new prefix length
     if new_prefix.len() > 10 {
         return Err("The prefix cannot be longer than 10 characters.".into());
@@ -93,10 +92,11 @@ async fn set_prefix(
 
     // Use INSERT ... ON CONFLICT syntax for SQLite (requires SQLite 3.24.0+)
     // Or you could use INSERT OR REPLACE INTO ... for simpler cases
+    let guild_id = guild_id.get() as i64;
     sqlx::query!(
         "INSERT INTO guild_prefixes (guild_id, prefix) VALUES (?, ?)
          ON CONFLICT (guild_id) DO UPDATE SET prefix = excluded.prefix", // Use ? for placeholders
-        guild_id.get() as i64, // Cast Discord Uid to i64
+        guild_id, // Cast Discord Uid to i64
         new_prefix
     )
     .execute(&ctx.data().db_pool)
@@ -839,16 +839,15 @@ async fn main() {
     // For SQLite, the DATABASE_URL is typically a file path, e.g., "sqlite:database.db"
     let database_url = std::env::var("DATABASE_URL").expect("No database url found.");
     // Set up the SQLx database connection pool for SQLite
-    let pool = SqlitePool::connect(&database_url).await; // Use SqlitePool
 
     // Run database migrations (optional but recommended for managing schema changes)
     // Ensure you have a 'migrations' directory with your SQL migration files.
     // You'll need the sqlx-cli installed (`cargo install sqlx-cli`).
     // To create a migration: `sqlx migrate add create_guild_prefixes_table`
     // To run migrations: `sqlx migrate run`
-    let migrator = sqlx::migrate::Migrator::new(Path::new("./migrations")).await;
-    migrator.unwrap().run(&pool.unwrap());
+    // --- Inline Database Table Creation ---
 
+    // --- End Inline Database Table Creation ---
     let framework: poise::Framework<_, _> = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             commands: vec![
@@ -872,7 +871,6 @@ async fn main() {
                 commands::sync(),
             ],
             prefix_options: poise::PrefixFrameworkOptions {
-                prefix: Some("td!".into()),
                 case_insensitive_commands: false,
                 mention_as_prefix: true,
                 dynamic_prefix: Some(|ctx| Box::pin(dynamic_prefix_resolver(ctx))), // Use our custom resolver
