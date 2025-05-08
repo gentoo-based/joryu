@@ -5,7 +5,6 @@ use poise::serenity_prelude::{
     self as serenity, CacheHttp, ClientBuilder, CreateAttachment, CreateMessage, GatewayIntents,
     Mentionable, Ready,
 };
-use regex::Regex;
 use sqlx::Pool;
 use sqlx::sqlite::SqlitePool;
 use std::{fs, path::PathBuf};
@@ -34,16 +33,6 @@ async fn dynamic_prefix_resolver(
     // We use query_as! for type-safe fetching.
     // SQLite uses '?' for placeholders
 
-    // --- Inline Database Table Creation ---
-    sqlx::query!(
-        "CREATE TABLE IF NOT EXISTS guild_prefixes (
-                guild_id INTEGER PRIMARY KEY,
-                prefix VARCHAR(10) NOT NULL DEFAULT 'td!'
-            )"
-    )
-    .execute(&ctx.data.db_pool)
-    .await
-    .expect("ERROR Creating Database");
     let guild_id = guild_id.get() as i64;
     let prefix_row = sqlx::query_as!(
         PrefixRow,
@@ -75,7 +64,7 @@ struct PrefixRow {
 /// Sets the command prefix forguild.
 /// Requires Administrator permissions.
 #[poise::command(guild_only, prefix_command, required_permissions = "ADMINISTRATOR")] // This command can only be used in a guild
-async fn set_prefix(
+async fn writepre(
     ctx: Context<'_>,
     #[description = "The new prefix to use (max 10 characters)"] new_prefix: String,
 ) -> Result<(), Error> {
@@ -105,6 +94,45 @@ async fn set_prefix(
     // Respond to the user confirming the prefix change
     ctx.say(format!(
         "Command prefix for this guild has been set to `{}`.",
+        new_prefix
+    ))
+    .await?;
+
+    Ok(())
+}
+/// Sets the command prefix forguild.
+/// Requires Administrator permissions.
+#[poise::command(guild_only, prefix_command, required_permissions = "ADMINISTRATOR")] // This command can only be used in a guild
+async fn readpre(ctx: Context<'_>) -> Result<(), Error> {
+    // Ensure the command is run in a guild (guild_only attribute already helps, but good practice)
+    let guild_id = ctx
+        .guild_id()
+        .ok_or("This command can only be used in a guild.")?;
+
+    let guild_id = guild_id.get() as i64;
+    let prefix_row = sqlx::query_as!(
+        PrefixRow,
+        "SELECT prefix FROM guild_prefixes WHERE guild_id = ?", // Use ? for placeholder
+        guild_id // Cast Discord's Uid to i64 for database storage
+    )
+    .fetch_optional(&ctx.data().db_pool) // fetch_optional returns Option<Row>
+    .await
+    .map_err(|e| {
+        // Log the error but don't crash the bot.
+        // In a real bot, you might want more sophisticated error handling.
+        eprintln!(
+            "Database error fetching prefix for guild {}: {}",
+            guild_id, e
+        );
+        // Return the error to the framework to be handled by the on_error hook
+        e
+    })?;
+
+    // If a prefix was found, return it. Otherwise, return None to use the default.
+    let new_prefix = prefix_row.map(|r| r.prefix);
+    // Respond to the user confirming the prefix change
+    ctx.say(format!(
+        "Command prefix for this guild has been set to `{:#?}`.",
         new_prefix
     ))
     .await?;
@@ -802,30 +830,6 @@ impl serenity::EventHandler for Handler {
             }
         });
     }
-    async fn message(
-        &self,
-        context: poise::serenity_prelude::Context,
-        message: poise::serenity_prelude::Message,
-    ) {
-        static INSULTS: &[&str] = &[
-            "Microsoft? I'm sorry, did you mean, Microdick?",
-            "Windows, more like Winblows.",
-            "Windows Update: ruining your day since 1995.",
-            "Bill Gates built a monopoly just to prove mediocrity scales.",
-            "Microsoft: turning simple problems into enterprise-level disasters.",
-            "Windows Defender? It couldn't defend a paperclip from Clippy.",
-            "Microsoft Edge? More like Soft-Edged Insecurity.",
-            "Microsoft Word crashes more than my self-esteem.",
-        ];
-
-        let comprehensive_pattern = r"(?i)\b(Microsoft|MS|Windows|Win|XP|Vista|NT)\b";
-        let re_comprehensive = Regex::new(comprehensive_pattern).unwrap(); // Handle errors properly!
-        let messagere = re_comprehensive.is_match(&message.content.clone());
-        if messagere && !message.author.bot {
-            let insult = rand::seq::IndexedRandom::choose(INSULTS, &mut rand::rng()).unwrap();
-            let _ = message.reply_ping(context.http, *insult).await;
-        }
-    }
 }
 
 #[tokio::main]
@@ -839,6 +843,7 @@ async fn main() {
     // For SQLite, the DATABASE_URL is typically a file path, e.g., "sqlite:database.db"
     let database_url = std::env::var("DATABASE_URL").expect("No database url found.");
     // Set up the SQLx database connection pool for SQLite
+    let pool = SqlitePool::connect(&database_url).await; // Use SqlitePool
 
     // Run database migrations (optional but recommended for managing schema changes)
     // Ensure you have a 'migrations' directory with your SQL migration files.
@@ -846,12 +851,21 @@ async fn main() {
     // To create a migration: `sqlx migrate add create_guild_prefixes_table`
     // To run migrations: `sqlx migrate run`
     // --- Inline Database Table Creation ---
-
+    sqlx::query!(
+        "CREATE TABLE IF NOT EXISTS guild_prefixes (
+                guild_id INTEGER PRIMARY KEY,
+                prefix VARCHAR(10) NOT NULL DEFAULT 'td!'
+            )"
+    )
+    .execute(&pool.unwrap())
+    .await
+    .expect("ERROR Creating Database");
     // --- End Inline Database Table Creation ---
     let framework: poise::Framework<_, _> = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             commands: vec![
-                set_prefix(),
+                writepre(),
+                readpre(),
                 commands::help(),
                 commands::hello(),
                 commands::ping(),
