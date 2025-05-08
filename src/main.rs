@@ -133,7 +133,7 @@ async fn readpre(ctx: Context<'_>) -> Result<(), Error> {
     // Respond to the user confirming the prefix change
     ctx.say(format!(
         "Command prefix for this guild has been set to `{:#?}`.",
-        new_prefix
+        new_prefix.unwrap()
     ))
     .await?;
 
