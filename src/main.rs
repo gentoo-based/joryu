@@ -26,7 +26,7 @@ async fn dynamic_prefix_resolver(
     // return None to signify using the default prefix.
     let guild_id = match ctx.guild_id {
         Some(id) => id,
-        _none => return Ok(Some("td!".to_string())), // Use default prefix in DMs
+        _none => return Ok(None), // Use default prefix in DMs
     };
 
     // Gotta make it first dawg
@@ -871,6 +871,7 @@ async fn main() {
                 commands::sync(),
             ],
             prefix_options: poise::PrefixFrameworkOptions {
+                prefix: Some("td!".to_string()),
                 case_insensitive_commands: false,
                 mention_as_prefix: true,
                 dynamic_prefix: Some(|ctx| Box::pin(dynamic_prefix_resolver(ctx))), // Use our custom resolver
