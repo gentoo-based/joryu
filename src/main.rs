@@ -532,6 +532,7 @@ mod commands {
                                 )
                                 .await
                                 .expect("Error");
+                            return Ok(());
                         }
                     },
                     _none => {}
