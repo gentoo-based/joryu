@@ -140,7 +140,7 @@ async fn readpre(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 mod commands {
-    use ::serenity::all::GetMessages;
+    use ::serenity::all::{CreateAllowedMentions, GetMessages};
     use poise::CreateReply;
 
     use super::*;
@@ -476,20 +476,63 @@ mod commands {
                 match messageid {
                     Some(messageid) => match message {
                         Some(message) => {
-                            serenity::Message::reply_ping(
-                                &serenity::ChannelId::message(
-                                    ctx.channel_id(),
+                            ctx.channel_id()
+                                .send_message(
                                     ctx.http(),
-                                    messageid,
+                                    CreateMessage::new()
+                                        .content(message)
+                                        .add_file(
+                                            CreateAttachment::url(ctx.http(), &attachment.url)
+                                                .await?,
+                                        )
+                                        .reference_message(
+                                            &serenity::ChannelId::message(
+                                                ctx.channel_id(),
+                                                ctx.http(),
+                                                messageid,
+                                            )
+                                            .await?,
+                                        )
+                                        .allowed_mentions(
+                                            CreateAllowedMentions::new()
+                                                .replied_user(true)
+                                                .everyone(true)
+                                                .all_users(true)
+                                                .all_roles(true),
+                                        ),
                                 )
-                                .await?,
-                                ctx.http(),
-                                message,
-                            )
-                            .await?;
+                                .await
+                                .expect("Error");
                             return Ok(());
                         }
-                        ref _none => {}
+                        ref _none => {
+                            ctx.channel_id()
+                                .send_message(
+                                    ctx.http(),
+                                    CreateMessage::new()
+                                        .add_file(
+                                            CreateAttachment::url(ctx.http(), &attachment.url)
+                                                .await?,
+                                        )
+                                        .reference_message(
+                                            &serenity::ChannelId::message(
+                                                ctx.channel_id(),
+                                                ctx.http(),
+                                                messageid,
+                                            )
+                                            .await?,
+                                        )
+                                        .allowed_mentions(
+                                            CreateAllowedMentions::new()
+                                                .replied_user(true)
+                                                .everyone(true)
+                                                .all_users(true)
+                                                .all_roles(true),
+                                        ),
+                                )
+                                .await
+                                .expect("Error");
+                        }
                     },
                     _none => {}
                 }
@@ -542,40 +585,43 @@ mod commands {
                 }
                 return Ok(());
             }
-            _none => {}
-        }
-        match message {
-            Some(message) => {
-                match messageid {
-                    Some(messageid) => {
-                        serenity::Message::reply_ping(
-                            &serenity::ChannelId::message(ctx.channel_id(), ctx.http(), messageid)
+            _none => match message {
+                Some(message) => {
+                    match messageid {
+                        Some(messageid) => {
+                            serenity::Message::reply_ping(
+                                &serenity::ChannelId::message(
+                                    ctx.channel_id(),
+                                    ctx.http(),
+                                    messageid,
+                                )
                                 .await?,
-                            ctx.http(),
-                            message,
-                        )
-                        .await?;
-                        return Ok(());
+                                ctx.http(),
+                                message,
+                            )
+                            .await?;
+                            return Ok(());
+                        }
+                        _none => {}
                     }
-                    _none => {}
-                }
-                match user {
-                    Some(user) => {
-                        user.direct_message(
-                            ctx.http(),
-                            CreateMessage::default().content(message.clone()),
-                        )
-                        .await?;
-                        return Ok(());
+                    match user {
+                        Some(user) => {
+                            user.direct_message(
+                                ctx.http(),
+                                CreateMessage::default().content(message.clone()),
+                            )
+                            .await?;
+                            return Ok(());
+                        }
+                        _none => {}
                     }
-                    _none => {}
+                    ctx.channel_id()
+                        .say(&ctx.serenity_context().http(), message.clone())
+                        .await?;
+                    return Ok(());
                 }
-                ctx.channel_id()
-                    .say(&ctx.serenity_context().http(), message.clone())
-                    .await?;
-                return Ok(());
-            }
-            _none => {}
+                _none => {}
+            },
         }
         return Ok(());
     }
